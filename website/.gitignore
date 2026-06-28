@@ -1,6 +1,0 @@
-# Astro dependencies and build artifacts.
-# dist/ is intentionally NOT ignored during bootstrap: Caddy mounts website/dist
-# as its static root, and until the first build it holds a temporary index.html
-# placeholder. Once a real `astro build` runs, dist/ can be moved to ignore.
-node_modules/
-.astro/
