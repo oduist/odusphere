@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_odu_book" model="ir.actions.client">
+        <field name="name">Book</field>
+        <field name="tag">odu_book.book</field>
+    </record>
+
+    <menuitem id="menu_odu_book_root"
+              name="Book"
+              action="action_odu_book"
+              sequence="5"/>
+</odoo>
