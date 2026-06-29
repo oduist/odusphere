@@ -5,9 +5,16 @@
 ## Modules
 | Module | Purpose | Depends | SPEC |
 |---|---|---|---|
+| `odu_base` | Governance core: enforces the `odu_`-only module installation policy. | `base` | `addons/odu_base/doc/tech_spec.md` |
 | `odu_book` | Built-in user documentation assembled from every installed `odu_*` module's `doc/user_guide.md`. | `web` | `addons/odu_book/doc/tech_spec.md` |
 
 ## Models
+- `ir.module.module` (`odu_base`) — `_inherit`; no new fields. Adds the install-policy guard.
+  - `button_install(self)` — override; runs `_odu_assert_installable()` then `super()`.
+  - `_odu_assert_installable(self) -> None` — raises `UserError` if `self | upstream_dependencies()` contains a non-installed, non-allowed module.
+  - `_odu_allowed_module_names(self) -> set[str]` — `ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param.
+  - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
+  - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
 - `odu.book` (`odu_book`) — `AbstractModel`, no table. User-documentation collector.
   - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` guides.
   - `_read_module_guide(self, module_name) -> html | None` — renders a single module's `doc/user_guide.md`.
@@ -26,4 +33,5 @@
 - None yet. `odu_book` consumes other `odu_*` modules' `doc/user_guide.md` at the filesystem level, not via ORM relations.
 
 ## Security Surface
+- `odu_base`: no new model/ACL/groups; install policy enforced in `button_install` (UI path only — CLI `-i` is out of scope by design). Allowlist widened only via the `odu_base.allowed_non_odu_modules` system parameter (admin-only).
 - `odu_book`: no model ACL/groups (AbstractModel); endpoint and menu open to all internal users; reads `ir.module.module` via `sudo()`.
