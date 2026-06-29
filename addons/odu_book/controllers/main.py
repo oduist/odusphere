@@ -9,3 +9,7 @@ class OduBookController(http.Controller):
     @http.route("/odu_book/book", type="jsonrpc", auth="user")
     def book(self):
         return request.env["odu.book"].get_book()
+
+    @http.route("/odu_book/changes", type="jsonrpc", auth="user")
+    def changes(self):
+        return request.env["odu.book"].get_changes()

@@ -104,8 +104,26 @@ def _consume_fence(lines, i, n, fence):
         i += 1
     i += 1  # skip the closing fence
     cls = ' class="language-%s"' % lang if lang else ""
-    code = str(escape("\n".join(body)))
+    code = _render_diff(body) if lang == "diff" else str(escape("\n".join(body)))
     return "<pre><code%s>%s</code></pre>" % (cls, code), i
+
+
+def _render_diff(body):
+    """Render a ``diff`` fenced block: colour added/removed lines.
+
+    Added lines (``+``) and removed lines (``-``) are wrapped in spans so the
+    documentation-change archive shows green/red diffs. Everything is escaped.
+    """
+    rendered = []
+    for line in body:
+        cell = str(escape(line))
+        if line[:1] == "+":
+            rendered.append('<span class="o_diff_add">%s</span>' % cell)
+        elif line[:1] == "-":
+            rendered.append('<span class="o_diff_del">%s</span>' % cell)
+        else:
+            rendered.append(cell)
+    return "\n".join(rendered)
 
 
 def _consume_quote(lines, i, n):

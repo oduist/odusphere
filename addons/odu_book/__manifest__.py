@@ -26,6 +26,8 @@ shown to the user in a single click.
             "odu_book/static/src/book/book.scss",
             "odu_book/static/src/book/book.js",
             "odu_book/static/src/book/book.xml",
+            "odu_book/static/src/changes/changes.js",
+            "odu_book/static/src/changes/changes.xml",
         ],
     },
     "application": True,

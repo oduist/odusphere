@@ -107,6 +107,18 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
      3. **Definition of Done:** a task is **not complete** until (a) the module SPEC fully reflects the new code, (b) the global map reflects the SPEC, and (c) the reverse-buildable test above holds — an agent could rebuild the module from the SPEC alone. If you cannot honestly claim (c), the SPEC is unfinished.
      4. **Drift check:** before declaring completion, re-read the touched SPEC against the code you just wrote and fix every divergence — missing fields, stale signatures, removed constraints, renamed methods.
 
+3. **CHANGE TIMELINE LAYER (For Humans & Agents — Per-Day Documentation Diff):**
+
+   The two layers above describe the **current state** of the system. This third layer records **how that state changed over time**. The two views are an **intentional, accepted duplication**: the structural docs (`tech_spec.md`, `user_guide.md`) are the *living snapshot* answering "what is true now"; the change timeline is the *append-only history* answering "what changed, and when". Never collapse one into the other — keep both live.
+
+   * **The change files (`doc/changes/`):** Every module owns a `doc/changes/` folder holding **one Markdown file per calendar day** on which its documentation changed, named exactly `YYYY-MM-DD.md` (e.g. `doc/changes/2026-06-29.md`). Anything not matching that name is ignored by the crawler. All documentation changes made to that module on that day go into that **single** day-file; if the file already exists, you **append** to it rather than create a second one.
+
+   * **What a change file records — the documentation diff, not the code diff:** state, per affected file (`tech_spec.md` / `user_guide.md`) and per section, exactly **what was Added, what was Changed, and what was Removed**. Use `### Added` / `### Changed` / `### Removed` headers, name the target section, and express structural deltas with a ```` ```diff ```` fenced block (lines starting with `+`/`-` are rendered green/red by the Book). The file must be specific enough that a reader sees the delta without diffing the snapshot themselves.
+
+   * **The "Changes" archive:** `odu_book` crawls every active `odu_*` module's `doc/changes/*.md` and renders them in a dedicated **"Changes"** menu inside the OduSphere UI — a day-by-day archive, browsable like a blog (newest day first, grouped by month).
+
+   * **Definition of Done extension:** any task that touches a module's `tech_spec.md` or `user_guide.md` is **not complete** until the matching `doc/changes/YYYY-MM-DD.md` entry — for the current day, in the **same commit** — exists and accurately reflects the snapshot delta you just made. A snapshot edit with no timeline entry is **drift**, exactly like a SPEC that disagrees with the code.
+
 ---
 
 ## ⚡ 7. TASK WORKFLOW
@@ -114,9 +126,10 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
 2. Generate optimized models, backend business logic (Python), and interface views (XML) inside a module with the `odu_` prefix.
 3. Update the complete, reverse-buildable Module SPEC in `custom_addons/odu_your_module/doc/tech_spec.md` (detail level per §6 — all fields, attributes, constraints, business rules, and method contracts; no copied source).
 4. Document the user instructions in `custom_addons/odu_your_module/doc/user_guide.md`.
-5. Propagate the signature/relation deltas into the global map `.docs/architecture.md`.
-6. Run the Definition-of-Done check (§6): verify the module is fully reconstructable from its SPEC alone, with no drift between SPEC and code.
-7. Deliver the output: operational code files + a brief human summary of changes.
+5. Record the documentation diff for today in `custom_addons/odu_your_module/doc/changes/YYYY-MM-DD.md` (§6, layer 3 — Added/Changed/Removed per section; append if the day-file already exists).
+6. Propagate the signature/relation deltas into the global map `.docs/architecture.md`.
+7. Run the Definition-of-Done check (§6): verify the module is fully reconstructable from its SPEC alone, with no drift between SPEC and code, and that the day's change file reflects the snapshot delta.
+8. Deliver the output: operational code files + a brief human summary of changes.
 
 ---
 
@@ -138,7 +151,8 @@ Strictly adhere to the following file tree layout across the repository:
 │       ├── security/                  # Access security rights (ir.model.access.csv)
 │       └── doc/                       # LOCAL DOCUMENTATION CAPSULE
 │           ├── tech_spec.md           # Complete, reverse-buildable Module SPEC (single source of truth)
-│           └── user_guide.md          # Markdown guide for humans (compiled by odu_book)
+│           ├── user_guide.md          # Markdown guide for humans (compiled by odu_book)
+│           └── changes/               # Per-day documentation diff timeline (YYYY-MM-DD.md, rendered by odu_book)
 │
 └── website/                          # Headless Frontend Project Root (Astro)
 ├── src/                           # Components, pages, and layout logic (.astro files)
