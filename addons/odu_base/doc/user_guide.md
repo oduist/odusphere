@@ -20,14 +20,15 @@ traditional ERP.
 
 ## What you will see
 
-When you (or anyone) open **Apps** and try to activate a module that is not part of
-OduSphere, the installation stops and a dialog appears:
+The **Apps** screen lists **only OduSphere modules** — anything that is not part of your
+OduSphere is hidden, so the catalog stays clean. The **Third-Party Apps** entry is removed
+from the Apps menu as well.
 
-> **OduSphere installation policy**
-> Only modules carrying the 'odu_' prefix may be installed (plus the allowed framework
-> modules: base, web).
->
-> Refused: <the module names that were blocked>
+If an installation of a non-OduSphere module is attempted anyway, it stops with a short
+message:
+
+> **Invalid Operation**
+> Only OduSphere modules can be installed.
 
 Installing an OduSphere module (anything named `odu_…`) works normally.
 

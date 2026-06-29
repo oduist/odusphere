@@ -9,7 +9,7 @@
 - Flags: `application = False`, `installable = True`, `auto_install` not set.
 - `depends`: `["base"]` — must extend `ir.module.module`, which lives in `base`; no business apps.
 - External Python libs: none.
-- `data`: none.
+- `data`: `views/ir_module_views.xml`.
 - Assets: none.
 
 ## Models & Fields
@@ -40,6 +40,15 @@
 - **Enforcement point.** The policy runs inside `button_install`, which the interactive
   "Activate"/"Install" Apps button reaches through `button_immediate_install`. Refusal
   happens **before** `super()`, so no partial install side effect occurs.
+- **Refusal message.** A single short, translatable line: `Only OduSphere modules can be
+  installed.` (no module listing, no rationale). Odoo renders it under its own
+  "Invalid Operation" dialog title.
+- **Apps listing scope.** The core Apps action (`base.open_module_tree`) carries a pinned
+  domain `[('name', '=like', 'odu_%')]`, so the Apps screen only ever lists `odu_`
+  modules regardless of search-bar state. The domain is enforced at the action level and
+  cannot be cleared by the user.
+- **Apps menu trimming.** The `Third-Party Apps` menu entry (`base.menu_third_party`) is
+  deactivated (`active = False`) — OduSphere does not consume store/third-party apps.
 - **Out of scope (documented limitation).** Installation forced through the command line
   (`odoo -i <module>`) or low-level loader does **not** pass through `button_install` and is
   therefore not policed — this is an administrative/devops path used to install `odu_base`
@@ -55,10 +64,9 @@
     `button_install`; any server-side caller of `button_install`.
 - `ir.module.module._odu_assert_installable(self)` — internal guard.
   - Computes `candidates = self | self.upstream_dependencies()`, filters to records whose
-    `state != "installed"` and that are **not** allowed, and raises `UserError` listing the
-    refused module names when that filtered set is non-empty. Returns `None` otherwise.
-  - Error message names the prefix, the current allowed framework set, and the refused
-    modules; built with `_()` for translation.
+    `state != "installed"` and that are **not** allowed, and raises
+    `UserError(_("Only OduSphere modules can be installed."))` when that filtered set is
+    non-empty. Returns `None` otherwise.
 - `ir.module.module._odu_allowed_module_names(self) -> set[str]`.
   - Reads the `odu_base.allowed_non_odu_modules` system parameter via `sudo()`, splits on
     commas, trims, and returns the union with `ALLOWED_FRAMEWORK_MODULES`.
@@ -72,8 +80,14 @@
   allowlist.
 
 ## Views & UI
-- None. No views, menus, actions, or assets. The module is pure backend governance; the
-  only user-visible surface is the `UserError` dialog shown when an install is refused.
+- No new views, no new menus, no new actions, no assets. The module only reshapes the
+  existing Apps UI via two data records in `views/ir_module_views.xml`:
+  - `base.open_module_tree` (act_window) — `domain` overridden to
+    `[('name', '=like', 'odu_%')]`, restricting the Apps listing to OduSphere modules.
+  - `base.menu_third_party` (ir.ui.menu) — `active` set to `False`, hiding the
+    "Third-Party Apps" menu entry.
+- The only other user-visible surface is the `UserError` dialog shown when an install is
+  refused.
 
 ## API Endpoints
 - None.

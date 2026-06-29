@@ -11,7 +11,7 @@
 ## Models
 - `ir.module.module` (`odu_base`) — `_inherit`; no new fields. Adds the install-policy guard.
   - `button_install(self)` — override; runs `_odu_assert_installable()` then `super()`.
-  - `_odu_assert_installable(self) -> None` — raises `UserError` if `self | upstream_dependencies()` contains a non-installed, non-allowed module.
+  - `_odu_assert_installable(self) -> None` — raises `UserError("Only OduSphere modules can be installed.")` if `self | upstream_dependencies()` contains a non-installed, non-allowed module.
   - `_odu_allowed_module_names(self) -> set[str]` — `ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param.
   - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
   - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
@@ -31,6 +31,9 @@
 
 ## Cross-Module Relations
 - None yet. `odu_book` consumes other `odu_*` modules' `doc/user_guide.md` at the filesystem level, not via ORM relations.
+
+## UI Overrides
+- `odu_base` reshapes the existing Apps UI (data records, no new views): pins `base.open_module_tree` domain to `[('name','=like','odu_%')]` (Apps lists only `odu_` modules) and deactivates the `base.menu_third_party` ("Third-Party Apps") menu.
 
 ## Security Surface
 - `odu_base`: no new model/ACL/groups; install policy enforced in `button_install` (UI path only — CLI `-i` is out of scope by design). Allowlist widened only via the `odu_base.allowed_non_odu_modules` system parameter (admin-only).

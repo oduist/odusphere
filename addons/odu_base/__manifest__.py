@@ -24,7 +24,9 @@ the system, preserving the Zero-Bloat architecture.
     "author": "OduSphere",
     "license": "LGPL-3",
     "depends": ["base"],
-    "data": [],
+    "data": [
+        "views/ir_module_views.xml",
+    ],
     "application": False,
     "installable": True,
 }

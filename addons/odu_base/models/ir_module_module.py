@@ -73,16 +73,4 @@ class IrModuleModule(models.Model):
             and not self._odu_is_allowed(module.name, allowed_names)
         )
         if forbidden:
-            blocked = ", ".join(sorted(forbidden.mapped("name")))
-            raise UserError(
-                _(
-                    "OduSphere installation policy\n"
-                    "Only modules carrying the '%(prefix)s' prefix may be "
-                    "installed (plus the allowed framework modules: "
-                    "%(allowed)s).\n\n"
-                    "Refused: %(blocked)s",
-                    prefix=ODU_PREFIX,
-                    allowed=", ".join(sorted(allowed_names)),
-                    blocked=blocked,
-                )
-            )
+            raise UserError(_("Only OduSphere modules can be installed."))

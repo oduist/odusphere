@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        OduSphere governance: the Apps listing must only ever expose modules
+        grown for this OduSphere. We pin a domain on the core "Apps" action so
+        that, whatever the user does in the search bar, only odu_ modules are
+        listed.
+    -->
+    <record id="base.open_module_tree" model="ir.actions.act_window">
+        <field name="domain">[('name', '=like', 'odu_%')]</field>
+    </record>
+
+    <!--
+        Remove the "Third-Party Apps" entry from the Apps menu: OduSphere does
+        not consume third-party apps from the store.
+    -->
+    <record id="base.menu_third_party" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+
+</odoo>
