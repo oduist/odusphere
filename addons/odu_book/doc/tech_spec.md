@@ -41,7 +41,7 @@
 - Only the human guides are exposed. The agent-facing `doc/tech_spec.md` is **deliberately never** read or shown to humans.
 - HTML is rendered from Markdown at request time — no caching, no stored HTML.
 - **Multilingual read-path (Userbook & Adminbook only):**
-  - Each guide is served in the reader's documentation language. The language is the short code of `context['lang']` or `user.lang` (`ru_RU` → `ru`), via `_doc_lang`.
+  - Each guide is served in the reader's documentation language. The language is the short code of `context['lang']` or `user.lang` (`en_US` → `en`), via `_doc_lang`.
   - Lookup order per module: `doc/i18n/<lang>/<filename>` first, then the source file `doc/<filename>`. A missing translation falls back to source **per file** (so a partially-translated system still renders fully).
   - There is **no `LANG.md` dependency at runtime** — the rule is purely "translated-if-present, else source". `LANG.md` governs authoring (the `odu-doc-i18n` skill), not serving.
   - A translated file may begin with a provenance marker line `<!-- i18n source=… sha=… lang=… -->`; it is stripped (`I18N_MARKER_RE`, once, at start) before Markdown rendering so it never appears in the Book.

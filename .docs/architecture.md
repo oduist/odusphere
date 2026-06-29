@@ -18,7 +18,7 @@
 - `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector. Human guides served per reader language (`doc/i18n/<lang>/`, source fallback); language policy in root `LANG.md`.
   - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` `doc/user_guide.md` (Userbook).
   - `get_admin_book(self) -> {"pages": [...]}` — `@api.model`; aggregates `doc/admin_guide.md` (Adminbook). Raises `AccessError` unless caller `has_group("base.group_system")`.
-  - `_doc_lang(self) -> str` — short doc-language code from `context['lang']`/`user.lang` (`ru_RU`→`ru`, default `en`).
+  - `_doc_lang(self) -> str` — short doc-language code from `context['lang']`/`user.lang` (`en_US`→`en`, default `en`).
   - `_collect_pages(self, filename, lang) -> [{id, module, title, html}, ...]` — shared collector behind `get_book`/`get_admin_book`.
   - `_read_module_doc(self, module_name, filename, lang) -> html | None` — renders a module's guide: prefers `doc/i18n/<lang>/<filename>`, falls back to `doc/<filename>`; strips leading i18n provenance marker.
   - `get_changes(self) -> {"days": [{date, entries: [{module, title, html}, ...]}, ...]}` — `@api.model`; aggregates installed `odu_*` modules' `doc/changes/YYYY-MM-DD.md`, grouped by day (descending).

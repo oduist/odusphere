@@ -82,7 +82,7 @@ class OduBook(models.AbstractModel):
     def _doc_lang(self):
         """Short documentation-language code for the current request.
 
-        Derived from the context/user language (``ru_RU`` -> ``ru``).
+        Derived from the context/user language (``en_US`` -> ``en``).
         Translations live under ``doc/i18n/<lang>/``; a missing one falls back
         to the source file. No dependency on ``LANG.md`` at runtime -- the read
         path is purely "translated-if-present, else source".

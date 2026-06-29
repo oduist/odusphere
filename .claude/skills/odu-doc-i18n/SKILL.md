@@ -37,7 +37,7 @@ language and falls back to the source file when a mirror is missing.
 Invoke as `odu-doc-i18n <command> [lang]`.
 
 ### `add <lang>`
-1. Confirm `<lang>` is a valid short code (e.g. `ru`, `pl`); refuse the `source`.
+1. Confirm `<lang>` is a valid short ISO code (e.g. `fr`, `de`); refuse the `source`.
 2. For **every** active `odu_*` module, for each file in `translate` that
    exists in the source: translate it and write the mirror at
    `doc/i18n/<lang>/<file>` (create dirs as needed).
