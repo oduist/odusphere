@@ -13,11 +13,11 @@ assembles them into a single interactive "user book" right inside the UI.
 No separate wiki -- the documentation lives next to the module code and is
 shown to the user in a single click.
 """,
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.2.0",
     "category": "Tools",
     "author": "OduSphere",
     "license": "LGPL-3",
-    "depends": ["web"],
+    "depends": ["odu_base", "web"],
     "data": [
         "views/odu_book_views.xml",
     ],

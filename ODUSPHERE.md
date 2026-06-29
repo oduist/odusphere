@@ -22,9 +22,10 @@ To preserve the pristine purity of OduSphere, you are bound by rigid boundaries:
 
 ---
 
-## 🏷️ 3. MODULE NAMING AND PREFIX RULE
+## 🏷️ 3. MODULE NAMING, PREFIX AND BASE-DEPENDENCY RULE
 * All custom modules you create in the system **MUST** begin with the prefix `odu_` (e.g., `odu_warehouse`, `odu_crm`). 
 * This is critically important to rigidly isolate our clean, AI-generated architecture from any external libraries or base system modules that may exist in the environment.
+* **Mandatory base dependency:** every custom module you create **MUST** declare `odu_base` in its manifest `depends`. `odu_base` is the governance core of every OduSphere — it carries the platform-wide constraints (such as the `odu_`-only installation policy). Depending on it guarantees the governance layer is always installed and active wherever your module is deployed. The single exception is `odu_base` itself, which depends only on `base`.
 
 ---
 
