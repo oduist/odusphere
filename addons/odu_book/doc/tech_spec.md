@@ -4,7 +4,7 @@
 - Technical name: `odu_book`
 - Display name: `Book`
 - Summary: Interactive user documentation assembled from the `odu_*` modules.
-- Version: `19.0.1.3.0` (Odoo 19)
+- Version: `19.0.1.4.0` (Odoo 19)
 - Category: `Tools` · Author: `OduSphere` · License: `LGPL-3`
 - Flags: `application = True`, `installable = True`
 - `depends`: `["odu_base", "web"]` — the mandatory OduSphere governance core (`odu_base`) plus the web framework; no business apps (complies with the Incubator constraint).
@@ -21,6 +21,8 @@
   - `ADMIN_GUIDE_FILENAME = "admin_guide.md"` — the administrator guide file name (Adminbook).
   - `CHANGES_DIRNAME = "changes"` — folder inside `doc/` holding the per-day change timeline.
   - `CHANGE_FILE_RE` — matches a change file name `YYYY-MM-DD.md` and captures the date.
+  - `I18N_DIRNAME = "i18n"` — folder inside `doc/` holding translated mirrors (`doc/i18n/<lang>/<file>`).
+  - `I18N_MARKER_RE` — matches the leading `<!-- i18n … -->` provenance line of a translated file, stripped before render.
   - `MODULE_PREFIX = "odu_"` — only modules with this prefix are collected.
   - `ADMIN_GROUP = "base.group_system"` — group required to read the Adminbook.
 
@@ -38,6 +40,12 @@
 - Userbook and Adminbook differ **only** in the source filename (`user_guide.md` vs `admin_guide.md`) and in access (Adminbook is admin-gated, see Security). Same rendering, same page shape.
 - Only the human guides are exposed. The agent-facing `doc/tech_spec.md` is **deliberately never** read or shown to humans.
 - HTML is rendered from Markdown at request time — no caching, no stored HTML.
+- **Multilingual read-path (Userbook & Adminbook only):**
+  - Each guide is served in the reader's documentation language. The language is the short code of `context['lang']` or `user.lang` (`ru_RU` → `ru`), via `_doc_lang`.
+  - Lookup order per module: `doc/i18n/<lang>/<filename>` first, then the source file `doc/<filename>`. A missing translation falls back to source **per file** (so a partially-translated system still renders fully).
+  - There is **no `LANG.md` dependency at runtime** — the rule is purely "translated-if-present, else source". `LANG.md` governs authoring (the `odu-doc-i18n` skill), not serving.
+  - A translated file may begin with a provenance marker line `<!-- i18n source=… sha=… lang=… -->`; it is stripped (`I18N_MARKER_RE`, once, at start) before Markdown rendering so it never appears in the Book.
+  - The **Changes** archive is **not** translated — `get_changes` reads only the source `doc/changes/*.md`.
 - **Changes archive** (the documentation-change timeline):
   - Each module may keep an append-only timeline under `doc/changes/`, **one Markdown file per calendar day**, named `YYYY-MM-DD.md`. Files whose name does not match `YYYY-MM-DD.md` are ignored; a module with no `doc/changes/` folder contributes nothing.
   - Aggregation axis is the **day**: every module's change file for a given date becomes one *entry* under that date. A day groups entries from all contributing modules.
@@ -47,20 +55,22 @@
 
 ## Methods & Actions
 - `odu.book.get_book(self)` — `@api.model`.
-  - Purpose: assemble the Userbook. Input: none.
-  - Returns: `{"pages": [{"id": <module name>, "module": <module name>, "title": <shortdesc|name>, "html": <rendered HTML>}, ...]}` (from each module's `user_guide.md`).
+  - Purpose: assemble the Userbook, in the reader's documentation language. Input: none.
+  - Returns: `{"pages": [{"id": <module name>, "module": <module name>, "title": <shortdesc|name>, "html": <rendered HTML>}, ...]}` (from each module's `user_guide.md`, translated mirror preferred).
   - Side effects: none (read-only; reads files from disk).
   - Trigger: the `/odu_book/book` controller (and any server-side caller).
 - `odu.book.get_admin_book(self)` — `@api.model`.
-  - Purpose: assemble the Adminbook (administrator guides). Input: none.
+  - Purpose: assemble the Adminbook (administrator guides), in the reader's language. Input: none.
   - Returns: the same `{"pages": [...]}` shape as `get_book`, read from each module's `admin_guide.md`.
   - Access rule: **raises `AccessError`** unless the caller `has_group("base.group_system")`. Admin guides are never returned to a non-administrator.
   - Side effects: none (read-only; reads files from disk).
   - Trigger: the `/odu_book/admin` controller (and any server-side caller).
-- `odu.book._collect_pages(self, filename)` — private.
-  - Shared collector behind `get_book`/`get_admin_book`: renders `doc/<filename>` of every installed `odu_*` module, returning the `[{id, module, title, html}, ...]` list (skipping modules without a readable file).
-- `odu.book._read_module_doc(self, module_name, filename)` — private.
-  - Resolves the module path and returns the rendered HTML of its `doc/<filename>`, or `None` when the module path / file is absent or the file cannot be read/decoded.
+- `odu.book._doc_lang(self)` — private.
+  - Returns the short documentation-language code for the request: prefix-before-`_` of `context['lang']` or `user.lang`, defaulting to `en`. Used to choose the `doc/i18n/<lang>/` mirror.
+- `odu.book._collect_pages(self, filename, lang)` — private.
+  - Shared collector behind `get_book`/`get_admin_book`: renders `doc/<filename>` (in `lang`) of every installed `odu_*` module, returning the `[{id, module, title, html}, ...]` list (skipping modules without a readable file).
+- `odu.book._read_module_doc(self, module_name, filename, lang)` — private.
+  - Returns the rendered HTML of the module's guide in `lang`: tries `doc/i18n/<lang>/<filename>`, falls back to `doc/<filename>`; strips a leading i18n provenance marker before rendering. `None` when neither file exists or cannot be read/decoded.
 - `odu.book.get_changes(self)` — `@api.model`.
   - Purpose: assemble the day-by-day documentation-change archive. Input: none.
   - Returns: `{"days": [{"date": "YYYY-MM-DD", "entries": [{"module", "title", "html"}, ...]}, ...]}` — days descending, entries by module name.

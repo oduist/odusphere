@@ -21,6 +21,10 @@ ADMIN_GUIDE_FILENAME = "admin_guide.md"
 CHANGES_DIRNAME = "changes"
 #: A change file is named after its day: ``YYYY-MM-DD.md``.
 CHANGE_FILE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.md$")
+#: Folder inside ``doc`` holding translated mirrors: ``doc/i18n/<lang>/<file>``.
+I18N_DIRNAME = "i18n"
+#: Leading provenance marker a translated file carries; stripped before render.
+I18N_MARKER_RE = re.compile(r"\A<!--\s*i18n\b[^>]*-->[ \t]*\r?\n?")
 #: Prefix of the OduSphere modules that are included in the Book.
 MODULE_PREFIX = "odu_"
 #: Group required to read the administrator documentation.
@@ -37,6 +41,10 @@ class OduBook(models.AbstractModel):
     privileged tasks, gated behind the system-admin group). The technical
     layer (``doc/tech_spec.md``) is deliberately ignored -- it is meant for
     agents, not for humans.
+
+    Both books are served in the reader's documentation language: a translated
+    mirror under ``doc/i18n/<lang>/`` is preferred, falling back to the source
+    file. The change timeline is not translated.
     """
 
     _name = "odu.book"
@@ -46,10 +54,13 @@ class OduBook(models.AbstractModel):
     def get_book(self):
         """Assemble the Userbook from every installed ``odu_*`` module.
 
+        Served in the reader's documentation language (see :meth:`_doc_lang`),
+        falling back to the source file per module.
+
         :return: ``{"pages": [{"id", "module", "title", "html"}, ...]}`` --
             one page per module (its ``doc/user_guide.md``).
         """
-        return {"pages": self._collect_pages(GUIDE_FILENAME)}
+        return {"pages": self._collect_pages(GUIDE_FILENAME, self._doc_lang())}
 
     @api.model
     def get_admin_book(self):
@@ -66,12 +77,24 @@ class OduBook(models.AbstractModel):
             raise AccessError(
                 self.env._("Administrator access is required to read the Admin Book.")
             )
-        return {"pages": self._collect_pages(ADMIN_GUIDE_FILENAME)}
+        return {"pages": self._collect_pages(ADMIN_GUIDE_FILENAME, self._doc_lang())}
 
-    def _collect_pages(self, filename):
+    def _doc_lang(self):
+        """Short documentation-language code for the current request.
+
+        Derived from the context/user language (``ru_RU`` -> ``ru``).
+        Translations live under ``doc/i18n/<lang>/``; a missing one falls back
+        to the source file. No dependency on ``LANG.md`` at runtime -- the read
+        path is purely "translated-if-present, else source".
+        """
+        lang = self.env.context.get("lang") or self.env.user.lang or "en"
+        return lang.split("_")[0]
+
+    def _collect_pages(self, filename, lang):
         """Render ``doc/<filename>`` of every installed ``odu_*`` module.
 
         :param filename: the documentation file to read in each module's ``doc``.
+        :param lang: the short documentation-language code to prefer.
         :return: ``[{"id", "module", "title", "html"}, ...]`` -- one entry per
             module that ships a readable ``filename``, ordered by module name.
         """
@@ -84,7 +107,7 @@ class OduBook(models.AbstractModel):
         )
         pages = []
         for module in modules:
-            html = self._read_module_doc(module.name, filename)
+            html = self._read_module_doc(module.name, filename, lang)
             if html is None:
                 continue
             pages.append(
@@ -97,21 +120,31 @@ class OduBook(models.AbstractModel):
             )
         return pages
 
-    def _read_module_doc(self, module_name, filename):
-        """Read and render ``doc/<filename>`` of a module (or None)."""
+    def _read_module_doc(self, module_name, filename, lang):
+        """Read and render ``doc/<filename>`` of a module in ``lang`` (or None).
+
+        Looks for a translation under ``doc/i18n/<lang>/<filename>`` first and
+        falls back to the source file ``doc/<filename>``. The leading i18n
+        provenance marker (if any) is stripped before rendering.
+        """
         module_path = get_module_path(module_name)
         if not module_path:
             return None
-        filepath = os.path.join(module_path, DOC_DIRNAME, filename)
-        if not os.path.isfile(filepath):
-            return None
-        try:
-            with open(filepath, "r", encoding="utf-8") as handle:
-                raw = handle.read()
-        except (OSError, UnicodeDecodeError):
-            _logger.warning("odu_book: failed to read %s", filepath)
-            return None
-        return md_to_html(raw)
+        candidates = [
+            os.path.join(module_path, DOC_DIRNAME, I18N_DIRNAME, lang, filename),
+            os.path.join(module_path, DOC_DIRNAME, filename),
+        ]
+        for filepath in candidates:
+            if not os.path.isfile(filepath):
+                continue
+            try:
+                with open(filepath, "r", encoding="utf-8") as handle:
+                    raw = handle.read()
+            except (OSError, UnicodeDecodeError):
+                _logger.warning("odu_book: failed to read %s", filepath)
+                return None
+            return md_to_html(I18N_MARKER_RE.sub("", raw, count=1))
+        return None
 
     @api.model
     def get_changes(self):

@@ -69,6 +69,8 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
      * **Hard rule:** if a module has *any* setting/configuration, or any task that must be performed with administrator rights, it **belongs in the Admin Guide, never the User Guide**. Such settings and tasks are inherently privileged and are carried out with administrator access.
      * **Access is administrator-only and enforced in two layers:** the menu carries `groups="base.group_system"`, and the server endpoint refuses to return any admin guide to a non-administrator. A module that exposes **no** settings or admin tasks simply ships **no** `admin_guide.md` (the Adminbook then shows nothing for it — that is correct, not a gap).
 
+   * **Languages — governed by `LANG.md`:** the human guides are authored in the `source` language defined in `LANG.md` and **mirrored into every `target` language** under `<module>/doc/i18n/<lang>/`, in the **same commit** (or via the `odu-doc-i18n` skill). The Userbook/Adminbook serve each reader the file matching their Odoo language and fall back to the source when a translation is absent. Only the human guides are translated — the technical SPEC, the system map, and the change timeline stay in the `source` language. Once a target language exists, authoring documentation in **all** target languages is part of the Definition of Done. (UI strings of modules are localised separately, the Odoo `.po`/`.pot` way.)
+
 2. **TECHNICAL LAYER (For Agents — Reproducible Module SPEC & System Map):**
 
    The technical documentation is a **reverse-buildable contract**. The governing acceptance test for every module is non-negotiable: **a competent agent, handed ONLY the SPEC and these rules, must be able to regenerate a behaviorally identical module from scratch — without ever reading the source code.** If the SPEC fails that test, it is incomplete, and so is the task.
@@ -162,7 +164,8 @@ Strictly adhere to the following file tree layout across the repository:
 │           ├── tech_spec.md           # Complete, reverse-buildable Module SPEC (single source of truth)
 │           ├── user_guide.md          # End-user guide — the Userbook (compiled by odu_book)
 │           ├── admin_guide.md         # Administrator guide — the Adminbook: settings & admin tasks, admin-access only (optional; only if the module has settings)
-│           └── changes/               # Per-day documentation diff timeline (YYYY-MM-DD.md, rendered by odu_book)
+│           ├── changes/               # Per-day documentation diff timeline (YYYY-MM-DD.md, rendered by odu_book)
+│           └── i18n/                  # Translated mirrors of the human guides: i18n/<lang>/{user_guide,admin_guide}.md (managed by the odu-doc-i18n skill)
 │
 └── website/                          # Headless Frontend Project Root (Astro)
 ├── src/                           # Components, pages, and layout logic (.astro files)

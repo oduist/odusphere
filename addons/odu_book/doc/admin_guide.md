@@ -28,3 +28,19 @@ Whenever a module has settings or privileged tasks — things that must be done
 with administrator access — they are documented in that module's **Admin Guide**
 page, not in the user guide. If the Admin Guide is empty, no installed module
 currently exposes administrator settings.
+
+## Documentation languages
+
+The Book shows each reader the documentation in **their own language** — the one
+set on their Odoo user profile. For a given module and page it looks for a
+translation first and falls back to the original text when no translation exists,
+so a partially translated system still reads cleanly.
+
+- The set of languages is defined in the project's `LANG.md` file. Today the
+  documentation ships in English only (`source: en`, no targets yet).
+- Translations are **pre-generated files**, not live machine translation — there
+  is no per-request translation cost or external service.
+- To add a language, the maintainer runs the `odu-doc-i18n` skill, which mirrors
+  the User Guide and Admin Guide of every module into the new language. The
+  **Changes** archive is kept in the source language only.
+
