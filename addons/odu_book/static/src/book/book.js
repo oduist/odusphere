@@ -12,6 +12,9 @@ import { Component, useState, onWillStart, markup } from "@odoo/owl";
 export class BookApp extends Component {
     static template = "odu_book.BookApp";
     static props = { "*": true };
+    //: JSON endpoint the book pulls its pages from. Subclasses override it
+    //  (e.g. the Adminbook reads /odu_book/admin) -- everything else is shared.
+    static endpoint = "/odu_book/book";
 
     setup() {
         this.state = useState({
@@ -22,7 +25,7 @@ export class BookApp extends Component {
         });
 
         onWillStart(async () => {
-            const data = await rpc("/odu_book/book");
+            const data = await rpc(this.constructor.endpoint);
             this.state.pages = data.pages || [];
             this.state.loaded = true;
             if (this.state.pages.length) {
