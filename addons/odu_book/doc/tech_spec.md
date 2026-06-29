@@ -4,10 +4,10 @@
 - Technical name: `odu_book`
 - Display name: `Book`
 - Summary: Interactive user documentation assembled from the `odu_*` modules.
-- Version: `19.0.1.1.0` (Odoo 19)
+- Version: `19.0.1.2.0` (Odoo 19)
 - Category: `Tools` · Author: `OduSphere` · License: `LGPL-3`
 - Flags: `application = True`, `installable = True`
-- `depends`: `["web"]` — framework only; no business apps (complies with the Incubator constraint).
+- `depends`: `["odu_base", "web"]` — the mandatory OduSphere governance core (`odu_base`) plus the web framework; no business apps (complies with the Incubator constraint).
 - External Python libs: none. The single import, `markupsafe`, ships with Odoo.
 - `data`: `views/odu_book_views.xml`.
 - Assets (`web.assets_backend`): `static/src/book/book.scss`, `static/src/book/book.js`, `static/src/book/book.xml`.
