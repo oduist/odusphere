@@ -4,9 +4,11 @@
 It is assembled automatically: the system finds every installed module and
 shows their documentation sections in a single window, with no separate wiki.
 
-The **Book** app has two menus:
+The **Book** app has three menus:
 
-- **Documentation** -- the current state of every module's guide.
+- **User Guide** -- the current state of every module's guide, for everyday users.
+- **Admin Guide** -- settings and tasks for administrators (visible only to
+  Settings administrators).
 - **Changes** -- a day-by-day archive of what was changed in the documentation.
 
 ## How it works
@@ -35,13 +37,15 @@ the history day by day.
   removed in its documentation. Added lines are shown in green, removed lines
   in red.
 
-So the **Documentation** menu always answers "what is true now", while the
+So the **User Guide** menu always answers "what is true now", while the
 **Changes** menu answers "what changed, and when".
 
 ## How to extend the Book
 
 To give a module a section in the Book, just put a `doc/user_guide.md` file
-next to the code and write in it in plain language using Markdown.
+next to the code and write in it in plain language using Markdown. If the
+module also has administrator settings, describe them in a `doc/admin_guide.md`
+file -- it appears in the **Admin Guide** section, for administrators only.
 
 The usual markup is supported: headings (`# Section`), lists (`- item`,
 `1. item`), emphasis (`**bold**`, `*italic*`), code (`` `inline` `` and code

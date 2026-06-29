@@ -53,13 +53,22 @@ The standard Odoo `website` module is **KATEGORICALLY BANNED**. Odoo must never 
 
 ---
 
-## 📚 6. TWO-LAYER LIVE DOCUMENTATION RULE
-Code and documentation in OduSphere are an inseparable atomic unit. You cannot consider any task completed until you update the documentation on both human and machine-readable levels:
+## 📚 6. LAYERED LIVE DOCUMENTATION RULE
+Code and documentation in OduSphere are an inseparable atomic unit. You cannot consider any task completed until you update the documentation on every layer below — the human-facing books (for users **and** for administrators), the machine-readable SPEC, and the change timeline.
 
-1. **USER LAYER (For Humans — Local):**
-   * Written in simple, clear language inside the `doc/user_guide.md` file of the modified module. 
-   * Every code modification (e.g., a new field, action button, or business workflow) must trigger an instant rewrite of this file. 
-   * The dedicated technical module `odu_book` automatically crawls active `odu_` modules, parses their `user_guide.md` files, and dynamic compiles them into a live, interactive "User Book" embedded directly inside the OduSphere UI.
+1. **HUMAN LAYER (For Humans — two audiences):**
+   Human documentation is split by audience. Each module keeps **two separate guides**, both crawled by `odu_book` and compiled into live, interactive books inside the OduSphere UI — the **Userbook** and the **Adminbook** — but written for different readers and protected by different access. Never mix the two: end-user how-to goes in one, administrator settings in the other.
+
+   * **User Guide — the Userbook (`doc/user_guide.md`):**
+     * Written in simple, clear language for the **end user** who runs the business workflow day to day: what the feature does and how to use it.
+     * Every code modification that changes user-visible behavior (a new field, action button, workflow) triggers an instant rewrite of this file.
+     * Visible to **every internal user**. `odu_book` compiles all modules' `user_guide.md` into the **User Guide** section.
+
+   * **Admin Guide — the Adminbook (`doc/admin_guide.md`):**
+     * Written for the **administrator**: administrative tasks and, critically, **every configurable setting the module exposes** — what it controls, allowed values, defaults, and consequences.
+     * **Hard rule:** if a module has *any* setting/configuration, or any task that must be performed with administrator rights, it **belongs in the Admin Guide, never the User Guide**. Such settings and tasks are inherently privileged and are carried out with administrator access.
+     * **Access is administrator-only and enforced in two layers:** the menu carries `groups="base.group_system"`, and the server endpoint refuses to return any admin guide to a non-administrator. A module that exposes **no** settings or admin tasks simply ships **no** `admin_guide.md` (the Adminbook then shows nothing for it — that is correct, not a gap).
+
 2. **TECHNICAL LAYER (For Agents — Reproducible Module SPEC & System Map):**
 
    The technical documentation is a **reverse-buildable contract**. The governing acceptance test for every module is non-negotiable: **a competent agent, handed ONLY the SPEC and these rules, must be able to regenerate a behaviorally identical module from scratch — without ever reading the source code.** If the SPEC fails that test, it is incomplete, and so is the task.
@@ -109,15 +118,15 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
 
 3. **CHANGE TIMELINE LAYER (For Humans & Agents — Per-Day Documentation Diff):**
 
-   The two layers above describe the **current state** of the system. This third layer records **how that state changed over time**. The two views are an **intentional, accepted duplication**: the structural docs (`tech_spec.md`, `user_guide.md`) are the *living snapshot* answering "what is true now"; the change timeline is the *append-only history* answering "what changed, and when". Never collapse one into the other — keep both live.
+   The layers above describe the **current state** of the system. This layer records **how that state changed over time**. The two views are an **intentional, accepted duplication**: the structural docs (`tech_spec.md`, `user_guide.md`, `admin_guide.md`) are the *living snapshot* answering "what is true now"; the change timeline is the *append-only history* answering "what changed, and when". Never collapse one into the other — keep both live.
 
    * **The change files (`doc/changes/`):** Every module owns a `doc/changes/` folder holding **one Markdown file per calendar day** on which its documentation changed, named exactly `YYYY-MM-DD.md` (e.g. `doc/changes/2026-06-29.md`). Anything not matching that name is ignored by the crawler. All documentation changes made to that module on that day go into that **single** day-file; if the file already exists, you **append** to it rather than create a second one.
 
-   * **What a change file records — the documentation diff, not the code diff:** state, per affected file (`tech_spec.md` / `user_guide.md`) and per section, exactly **what was Added, what was Changed, and what was Removed**. Use `### Added` / `### Changed` / `### Removed` headers, name the target section, and express structural deltas with a ```` ```diff ```` fenced block (lines starting with `+`/`-` are rendered green/red by the Book). The file must be specific enough that a reader sees the delta without diffing the snapshot themselves.
+   * **What a change file records — the documentation diff, not the code diff:** state, per affected file (`tech_spec.md` / `user_guide.md` / `admin_guide.md`) and per section, exactly **what was Added, what was Changed, and what was Removed**. Use `### Added` / `### Changed` / `### Removed` headers, name the target section, and express structural deltas with a ```` ```diff ```` fenced block (lines starting with `+`/`-` are rendered green/red by the Book). The file must be specific enough that a reader sees the delta without diffing the snapshot themselves.
 
    * **The "Changes" archive:** `odu_book` crawls every active `odu_*` module's `doc/changes/*.md` and renders them in a dedicated **"Changes"** menu inside the OduSphere UI — a day-by-day archive, browsable like a blog (newest day first, grouped by month).
 
-   * **Definition of Done extension:** any task that touches a module's `tech_spec.md` or `user_guide.md` is **not complete** until the matching `doc/changes/YYYY-MM-DD.md` entry — for the current day, in the **same commit** — exists and accurately reflects the snapshot delta you just made. A snapshot edit with no timeline entry is **drift**, exactly like a SPEC that disagrees with the code.
+   * **Definition of Done extension:** any task that touches a module's `tech_spec.md`, `user_guide.md` or `admin_guide.md` is **not complete** until the matching `doc/changes/YYYY-MM-DD.md` entry — for the current day, in the **same commit** — exists and accurately reflects the snapshot delta you just made. A snapshot edit with no timeline entry is **drift**, exactly like a SPEC that disagrees with the code.
 
 ---
 
@@ -125,8 +134,8 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
 1. Analyze the user's business requirement. Map the solution to semantic concepts, designing it around the physical process of the client.
 2. Generate optimized models, backend business logic (Python), and interface views (XML) inside a module with the `odu_` prefix.
 3. Update the complete, reverse-buildable Module SPEC in `custom_addons/odu_your_module/doc/tech_spec.md` (detail level per §6 — all fields, attributes, constraints, business rules, and method contracts; no copied source).
-4. Document the user instructions in `custom_addons/odu_your_module/doc/user_guide.md`.
-5. Record the documentation diff for today in `custom_addons/odu_your_module/doc/changes/YYYY-MM-DD.md` (§6, layer 3 — Added/Changed/Removed per section; append if the day-file already exists).
+4. Document the end-user instructions in `custom_addons/odu_your_module/doc/user_guide.md`, and — **if the module exposes any setting or administrator task** — document those (admin-access only) in `custom_addons/odu_your_module/doc/admin_guide.md` (§6, Human layer).
+5. Record the documentation diff for today in `custom_addons/odu_your_module/doc/changes/YYYY-MM-DD.md` (§6, Change timeline layer — Added/Changed/Removed per section; append if the day-file already exists).
 6. Propagate the signature/relation deltas into the global map `.docs/architecture.md`.
 7. Run the Definition-of-Done check (§6): verify the module is fully reconstructable from its SPEC alone, with no drift between SPEC and code, and that the day's change file reflects the snapshot delta.
 8. Deliver the output: operational code files + a brief human summary of changes.
@@ -151,7 +160,8 @@ Strictly adhere to the following file tree layout across the repository:
 │       ├── security/                  # Access security rights (ir.model.access.csv)
 │       └── doc/                       # LOCAL DOCUMENTATION CAPSULE
 │           ├── tech_spec.md           # Complete, reverse-buildable Module SPEC (single source of truth)
-│           ├── user_guide.md          # Markdown guide for humans (compiled by odu_book)
+│           ├── user_guide.md          # End-user guide — the Userbook (compiled by odu_book)
+│           ├── admin_guide.md         # Administrator guide — the Adminbook: settings & admin tasks, admin-access only (optional; only if the module has settings)
 │           └── changes/               # Per-day documentation diff timeline (YYYY-MM-DD.md, rendered by odu_book)
 │
 └── website/                          # Headless Frontend Project Root (Astro)

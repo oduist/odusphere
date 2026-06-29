@@ -10,6 +10,11 @@ class OduBookController(http.Controller):
     def book(self):
         return request.env["odu.book"].get_book()
 
+    @http.route("/odu_book/admin", type="jsonrpc", auth="user")
+    def admin_book(self):
+        # get_admin_book enforces the system-admin group itself.
+        return request.env["odu.book"].get_admin_book()
+
     @http.route("/odu_book/changes", type="jsonrpc", auth="user")
     def changes(self):
         return request.env["odu.book"].get_changes()

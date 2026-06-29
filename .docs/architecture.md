@@ -15,9 +15,11 @@
   - `_odu_allowed_module_names(self) -> set[str]` — `ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param.
   - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
   - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
-- `odu.book` (`odu_book`) — `AbstractModel`, no table. User-documentation + change-timeline collector.
-  - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` guides.
-  - `_read_module_guide(self, module_name) -> html | None` — renders a single module's `doc/user_guide.md`.
+- `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector.
+  - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` `doc/user_guide.md` (Userbook).
+  - `get_admin_book(self) -> {"pages": [...]}` — `@api.model`; aggregates `doc/admin_guide.md` (Adminbook). Raises `AccessError` unless caller `has_group("base.group_system")`.
+  - `_collect_pages(self, filename) -> [{id, module, title, html}, ...]` — shared collector behind `get_book`/`get_admin_book`.
+  - `_read_module_doc(self, module_name, filename) -> html | None` — renders a single module's `doc/<filename>`.
   - `get_changes(self) -> {"days": [{date, entries: [{module, title, html}, ...]}, ...]}` — `@api.model`; aggregates installed `odu_*` modules' `doc/changes/YYYY-MM-DD.md`, grouped by day (descending).
   - `_read_module_changes(self, module_name) -> [(date_str, html), ...]` — reads one module's `doc/changes/*.md` (file names matching `YYYY-MM-DD.md`).
 
@@ -26,22 +28,25 @@
 
 ## HTTP Endpoints
 - `POST /odu_book/book` — `jsonrpc`, `auth=user` → `odu.book.get_book()`.
+- `POST /odu_book/admin` — `jsonrpc`, `auth=user` → `odu.book.get_admin_book()` (admin-only; raises `AccessError` for non-`base.group_system`).
 - `POST /odu_book/changes` — `jsonrpc`, `auth=user` → `odu.book.get_changes()`.
 
 ## Client Actions & Menus
-- `action_odu_book` (`ir.actions.client`, tag `odu_book.book`) ↔ OWL `BookApp` (template `odu_book.BookApp`).
+- `action_odu_book` (`ir.actions.client`, tag `odu_book.book`) ↔ OWL `BookApp` (template `odu_book.BookApp`, static `endpoint`).
+- `action_odu_book_admin` (`ir.actions.client`, tag `odu_book.admin`) ↔ OWL `AdminBookApp` (subclass of `BookApp`, `endpoint=/odu_book/admin`).
 - `action_odu_book_changes` (`ir.actions.client`, tag `odu_book.changes`) ↔ OWL `ChangesApp` (template `odu_book.ChangesApp`).
 - Menu `menu_odu_book_root` — "Book", root-level container, sequence 5 (no action).
-  - `menu_odu_book_doc` — "Documentation", sequence 5 → `action_odu_book`.
+  - `menu_odu_book_doc` — "User Guide", sequence 5 → `action_odu_book`.
+  - `menu_odu_book_admin` — "Admin Guide", sequence 7 → `action_odu_book_admin`, `groups="base.group_system"`.
   - `menu_odu_book_changes` — "Changes", sequence 10 → `action_odu_book_changes`.
 
 ## Cross-Module Relations
 - Every `odu_*` module declares `odu_base` in its manifest `depends` (mandatory governance base; ODUSPHERE.md §3). `odu_book` → `depends(odu_base, web)`.
-- `odu_book` consumes other `odu_*` modules' `doc/user_guide.md` and `doc/changes/*.md` at the filesystem level, not via ORM relations.
+- `odu_book` consumes other `odu_*` modules' `doc/user_guide.md`, `doc/admin_guide.md` and `doc/changes/*.md` at the filesystem level, not via ORM relations.
 
 ## UI Overrides
 - `odu_base` reshapes the existing Apps UI (data records, no new views): pins `base.open_module_tree` domain to `[('name','=like','odu_%')]` (Apps lists only `odu_` modules) and deactivates the `base.menu_third_party` ("Third-Party Apps") menu.
 
 ## Security Surface
 - `odu_base`: no new model/ACL/groups; install policy enforced in `button_install` (UI path only — CLI `-i` is out of scope by design). Allowlist widened only via the `odu_base.allowed_non_odu_modules` system parameter (admin-only).
-- `odu_book`: no model ACL/groups (AbstractModel); endpoints and menus open to all internal users; reads `ir.module.module` via `sudo()`.
+- `odu_book`: no model ACL/groups (AbstractModel); Userbook & Changes endpoints/menus open to all internal users; reads `ir.module.module` via `sudo()`. **Adminbook** (`get_admin_book` / `/odu_book/admin` / `menu_odu_book_admin`) is restricted to `base.group_system` — enforced server-side (`AccessError`) and in the menu (`groups`).

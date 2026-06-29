@@ -4,6 +4,7 @@ import os
 import re
 
 from odoo import api, models
+from odoo.exceptions import AccessError
 from odoo.modules.module import get_module_path
 
 from .markdown import md_to_html
@@ -12,23 +13,30 @@ _logger = logging.getLogger(__name__)
 
 #: Folder inside a module that holds the user documentation.
 DOC_DIRNAME = "doc"
-#: File name of the user guide (see CLAUDE.md, two-layer documentation).
+#: File name of the end-user guide (the Userbook).
 GUIDE_FILENAME = "user_guide.md"
+#: File name of the administrator guide (the Adminbook) -- admin tasks & settings.
+ADMIN_GUIDE_FILENAME = "admin_guide.md"
 #: Folder inside ``doc`` that holds the per-day documentation-change timeline.
 CHANGES_DIRNAME = "changes"
 #: A change file is named after its day: ``YYYY-MM-DD.md``.
 CHANGE_FILE_RE = re.compile(r"^(\d{4}-\d{2}-\d{2})\.md$")
 #: Prefix of the OduSphere modules that are included in the Book.
 MODULE_PREFIX = "odu_"
+#: Group required to read the administrator documentation.
+ADMIN_GROUP = "base.group_system"
 
 
 class OduBook(models.AbstractModel):
-    """User documentation collector.
+    """Documentation collector for the installed ``odu_*`` modules.
 
-    The model stores nothing (no table): it reads the installed ``odu_*``
-    modules and assembles their ``doc/user_guide.md`` user guides from disk
-    into a single book. The technical layer (``doc/tech_spec.md``) is
-    deliberately ignored -- it is meant for agents, not for the user.
+    The model stores nothing (no table): it reads the modules from disk and
+    assembles their human-facing guides into books. Two audiences, two books:
+    the **Userbook** (``doc/user_guide.md``, for end users) and the
+    **Adminbook** (``doc/admin_guide.md``, for administrators -- settings and
+    privileged tasks, gated behind the system-admin group). The technical
+    layer (``doc/tech_spec.md``) is deliberately ignored -- it is meant for
+    agents, not for humans.
     """
 
     _name = "odu.book"
@@ -36,10 +44,36 @@ class OduBook(models.AbstractModel):
 
     @api.model
     def get_book(self):
-        """Assemble the book from the guides of every installed ``odu_*`` module.
+        """Assemble the Userbook from every installed ``odu_*`` module.
 
         :return: ``{"pages": [{"id", "module", "title", "html"}, ...]}`` --
             one page per module (its ``doc/user_guide.md``).
+        """
+        return {"pages": self._collect_pages(GUIDE_FILENAME)}
+
+    @api.model
+    def get_admin_book(self):
+        """Assemble the Adminbook (administrator guides). Admin-only.
+
+        Same shape as :meth:`get_book` but reads ``doc/admin_guide.md`` and is
+        restricted to members of the system-admin group, because admin guides
+        describe privileged settings and tasks.
+
+        :raise AccessError: when the caller is not a system administrator.
+        :return: ``{"pages": [{"id", "module", "title", "html"}, ...]}``.
+        """
+        if not self.env.user.has_group(ADMIN_GROUP):
+            raise AccessError(
+                self.env._("Administrator access is required to read the Admin Book.")
+            )
+        return {"pages": self._collect_pages(ADMIN_GUIDE_FILENAME)}
+
+    def _collect_pages(self, filename):
+        """Render ``doc/<filename>`` of every installed ``odu_*`` module.
+
+        :param filename: the documentation file to read in each module's ``doc``.
+        :return: ``[{"id", "module", "title", "html"}, ...]`` -- one entry per
+            module that ships a readable ``filename``, ordered by module name.
         """
         modules = self.env["ir.module.module"].sudo().search(
             [
@@ -50,7 +84,7 @@ class OduBook(models.AbstractModel):
         )
         pages = []
         for module in modules:
-            html = self._read_module_guide(module.name)
+            html = self._read_module_doc(module.name, filename)
             if html is None:
                 continue
             pages.append(
@@ -61,14 +95,14 @@ class OduBook(models.AbstractModel):
                     "html": html,
                 }
             )
-        return {"pages": pages}
+        return pages
 
-    def _read_module_guide(self, module_name):
-        """Read and render the module's ``doc/user_guide.md`` (or None)."""
+    def _read_module_doc(self, module_name, filename):
+        """Read and render ``doc/<filename>`` of a module (or None)."""
         module_path = get_module_path(module_name)
         if not module_path:
             return None
-        filepath = os.path.join(module_path, DOC_DIRNAME, GUIDE_FILENAME)
+        filepath = os.path.join(module_path, DOC_DIRNAME, filename)
         if not os.path.isfile(filepath):
             return None
         try:

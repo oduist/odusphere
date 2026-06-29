@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="action_odu_book" model="ir.actions.client">
-        <field name="name">Book</field>
+        <field name="name">User Guide</field>
         <field name="tag">odu_book.book</field>
+    </record>
+
+    <record id="action_odu_book_admin" model="ir.actions.client">
+        <field name="name">Admin Guide</field>
+        <field name="tag">odu_book.admin</field>
     </record>
 
     <record id="action_odu_book_changes" model="ir.actions.client">
@@ -15,10 +20,17 @@
               sequence="5"/>
 
     <menuitem id="menu_odu_book_doc"
-              name="Documentation"
+              name="User Guide"
               parent="menu_odu_book_root"
               action="action_odu_book"
               sequence="5"/>
+
+    <menuitem id="menu_odu_book_admin"
+              name="Admin Guide"
+              parent="menu_odu_book_root"
+              action="action_odu_book_admin"
+              groups="base.group_system"
+              sequence="7"/>
 
     <menuitem id="menu_odu_book_changes"
               name="Changes"
