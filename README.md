@@ -14,33 +14,34 @@ single entry point.
 .
 ├── addons/             # OduSphere Odoo modules (odu_* prefix); e.g. odu_book
 ├── website/            # Astro site root; build → website/dist (served by Caddy)
-├── config/odoo.conf    # Odoo configuration for the local stack
 ├── Caddyfile           # Gateway: static website/dist + proxy to Odoo
-└── docker-compose.yml  # Local stack: Postgres + Odoo + Caddy
+└── sphere.caddy        # Sphere-owned extra gateway routes (imported by the Caddyfile)
 ```
 
 The standard Odoo `website` module is not used — the entire public frontend lives in
 `website/`.
 
-## Quick start
+## Running a sphere
 
-```bash
-docker compose up -d        # start Postgres + Odoo + Caddy
-docker compose ps           # check service status
-```
+This sphere is **provisioned and operated entirely by the
+[OduSphere CLI](https://github.com/oduist/odusphere-cli)** — there is no local
+`docker compose` stack. The CLI runs the Postgres database, the Odoo backend, and
+the Caddy gateway as containers (one isolated environment per git branch) and
+exposes them to AI coding agents over MCP. Code reaches the running containers
+**through git** (the CLI clones this repo and applies changes), not a bind-mount.
 
-Once running:
+To bring a sphere up, point the OduSphere CLI at this repository and let it create
+the environment, install modules, and run tests. See the CLI documentation at
+<https://docs.odusphere.dev/>.
 
-- `http://localhost/` — public site (static files from `website/dist`; currently a
-  temporary placeholder until `astro build` has run — see
-  [website/README.md](website/README.md)).
-- `http://localhost/odoo` — Odoo backend (login / database manager).
+Once an environment is up:
 
-Install the demo module `odu_book`:
+- `/` — public site (static files Caddy serves from `website/dist`, built with
+  `astro build` — see [website/README.md](website/README.md)).
+- `/odoo` — Odoo backend (login / database manager).
 
-```bash
-docker compose exec odoo odoo -i odu_book -d odusphere --stop-after-init
-```
+The demo module `odu_book` is installed through the CLI (e.g. its
+`install_odoo_modules` tool), not a local shell command.
 
 ---
 
