@@ -16,15 +16,31 @@
 #     degrades to a 2-way merge and conflicts on every file upstream touched.
 #     If there is no base we warn and point at scripts/link-upstream-history.sh.
 #
-#   Usage:  ./scripts/update-from-upstream.sh
+#   Usage:
+#     ./scripts/update-from-upstream.sh
+#     ./scripts/update-from-upstream.sh --branch 19.0          # track a version branch
+#     UPSTREAM_BRANCH=19.0 ./scripts/update-from-upstream.sh    # same, via env
+#     ./scripts/update-from-upstream.sh --remote template       # different remote name
 #
 set -euo pipefail
 
-UPSTREAM_REMOTE="upstream"
-UPSTREAM_BRANCH="main"
+# Upstream remote/branch are configurable via env vars or flags (flags win).
+UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
+UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
 # Directories the sphere fully owns: their files are forced back to OURS and any
 # files upstream added under them are dropped. Add more here if needed.
 OWNED_DIRS=("website")
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --remote) UPSTREAM_REMOTE="${2:?--remote needs a value}"; shift 2 ;;
+    --remote=*) UPSTREAM_REMOTE="${1#--remote=}"; shift ;;
+    --branch) UPSTREAM_BRANCH="${2:?--branch needs a value}"; shift 2 ;;
+    --branch=*) UPSTREAM_BRANCH="${1#--branch=}"; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    *) echo "✗ Unknown argument: $1" >&2; exit 1 ;;
+  esac
+done
 
 # Always operate from the repository root.
 cd "$(git rev-parse --show-toplevel)"

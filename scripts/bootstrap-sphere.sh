@@ -12,17 +12,33 @@
 #
 #   Usage:
 #     ./scripts/bootstrap-sphere.sh <target-dir> <sphere-origin-url>
+#     ./scripts/bootstrap-sphere.sh --branch 19.0 <target-dir> <sphere-origin-url>
+#
+#   The template URL and branch are configurable via env vars or flags (flags win):
+#     TEMPLATE_URL, TEMPLATE_BRANCH  /  --template-url <url>, --branch <name>
 #
 #   Example:
 #     ./scripts/bootstrap-sphere.sh acme-sphere git@github.com:acme/odusphere.git
 #
 set -euo pipefail
 
-TEMPLATE_URL="git@github.com:oduist/odusphere.git"
-TEMPLATE_BRANCH="main"
+TEMPLATE_URL="${TEMPLATE_URL:-git@github.com:oduist/odusphere.git}"
+TEMPLATE_BRANCH="${TEMPLATE_BRANCH:-main}"
 
-TARGET="${1:-}"
-ORIGIN_URL="${2:-}"
+POSITIONAL=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --branch) TEMPLATE_BRANCH="${2:?--branch needs a value}"; shift 2 ;;
+    --branch=*) TEMPLATE_BRANCH="${1#--branch=}"; shift ;;
+    --template-url) TEMPLATE_URL="${2:?--template-url needs a value}"; shift 2 ;;
+    --template-url=*) TEMPLATE_URL="${1#--template-url=}"; shift ;;
+    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -*) echo "✗ Unknown argument: $1" >&2; exit 1 ;;
+    *) POSITIONAL+=("$1"); shift ;;
+  esac
+done
+TARGET="${POSITIONAL[0]:-}"
+ORIGIN_URL="${POSITIONAL[1]:-}"
 
 if [ -z "$TARGET" ] || [ -z "$ORIGIN_URL" ]; then
   sed -n '2,20p' "$0"

@@ -78,3 +78,19 @@ under `website/` itself, and reports any residual conflicts for a human.
 With shared history + ownership lanes + the driver in place, this fetches,
 merges, auto-keeps sphere-owned files, and commits — usually with **zero**
 manual conflict resolution.
+
+### Configuring the upstream branch
+
+The upstream remote and branch are **not hardcoded** — every script takes them
+from an env var or a flag (flag wins), defaulting to `upstream` / `main`:
+
+```bash
+./scripts/update-from-upstream.sh --branch 19.0      # track a version branch
+UPSTREAM_BRANCH=19.0 ./scripts/update-from-upstream.sh
+./scripts/link-upstream-history.sh --branch 19.0 --from <ref>
+./scripts/bootstrap-sphere.sh --branch 19.0 <dir> <url>
+TEMPLATE_BRANCH=19.0 ./scripts/bootstrap-sphere.sh <dir> <url>
+```
+
+So when the template adopts version branches (e.g. `19.0`, `18.0`), point a sphere
+at the right one without editing the scripts.

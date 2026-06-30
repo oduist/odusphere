@@ -29,8 +29,9 @@
 #
 set -euo pipefail
 
-UPSTREAM_REMOTE="upstream"
-UPSTREAM_BRANCH="main"
+# Upstream remote/branch are configurable via env vars or flags (flags win).
+UPSTREAM_REMOTE="${UPSTREAM_REMOTE:-upstream}"
+UPSTREAM_BRANCH="${UPSTREAM_BRANCH:-main}"
 # Upstream-owned paths used to auto-detect the copy point (must exist upstream).
 CORE_PATHS=("addons/odu_base" "addons/odu_book" "ODUSPHERE.md")
 
@@ -39,6 +40,10 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --from) FROM="${2:-}"; shift 2 ;;
     --from=*) FROM="${1#--from=}"; shift ;;
+    --remote) UPSTREAM_REMOTE="${2:?--remote needs a value}"; shift 2 ;;
+    --remote=*) UPSTREAM_REMOTE="${1#--remote=}"; shift ;;
+    --branch) UPSTREAM_BRANCH="${2:?--branch needs a value}"; shift 2 ;;
+    --branch=*) UPSTREAM_BRANCH="${1#--branch=}"; shift ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "✗ Unknown argument: $1" >&2; exit 1 ;;
   esac
