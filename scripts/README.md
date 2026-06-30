@@ -38,15 +38,14 @@ both sides' content.
 |---|---|---|
 | System map | `.docs/architecture.md` (core only) | `.docs/architecture.local.md` (this sphere's modules) |
 | Gateway | `Caddyfile` | `sphere.caddy` (imported by the Caddyfile) |
-| Local stack | `docker-compose.yml` | `docker-compose.override.yml` (git-ignored; compose merges it natively) |
 | Frontend | — | `website/**` |
-| Config / docs | `ODUSPHERE.md`, `AGENTS.md`, core `addons/odu_base`, `addons/odu_book`, `scripts/` | `README.md`, `LANG.md`, `config/odoo.conf` |
+| Config / docs | `ODUSPHERE.md`, `AGENTS.md`, core `addons/odu_base`, `addons/odu_book`, `scripts/` | `README.md`, `LANG.md` |
 | Your modules | — | `addons/odu_<your_module>/**` (upstream never ships these) |
 
 **Never** add a sphere's modules to `.docs/architecture.md` or edit the
-`Caddyfile`/`docker-compose.yml` directly — use the sphere-owned companion. That
-is what keeps updates conflict-free (the contract in `ODUSPHERE.md` §6 enforces
-this for the system map).
+`Caddyfile` directly — use the sphere-owned companion. That is what keeps updates
+conflict-free (the contract in `ODUSPHERE.md` §6 enforces this for the system
+map).
 
 ## 3. The merge drivers (auto-resolve conflicts deterministically)
 

@@ -2,6 +2,5 @@
 website/node_modules/
 website/.astro/
 
-# Local overrides and environment secrets.
-docker-compose.override.yml
+# Environment secrets.
 .env

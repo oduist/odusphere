@@ -15,7 +15,7 @@ update these two modules are taken from upstream **as-is**: any local change to
 them is silently overwritten — without a merge conflict, by design — so that
 upstream fixes always land cleanly. (Your own changes are safe everywhere else;
 the update keeps this sphere's `website/`, its own `odu_*` modules, `README.md`,
-`config/odoo.conf` and the sphere system map `.docs/architecture.local.md`.)
+`LANG.md` and the sphere system map `.docs/architecture.local.md`.)
 
 To change or extend core behavior, **create your own `odu_*` module** that depends
 on `odu_base` — never modify the core in place. See `scripts/README.md` for the
