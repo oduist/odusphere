@@ -1,6 +1,12 @@
-# OduSphere — Global System Map
+# OduSphere — Global System Map (core)
 
-> Machine-readable index of the entire OduSphere backend. **Signatures and relations only — no code, no logic bodies.** Read this file first at the start of every session. Full per-module detail lives in each module's `doc/tech_spec.md`.
+> Machine-readable index of the OduSphere backend. **Signatures and relations only — no code, no logic bodies.** Read this file first at the start of every session. Full per-module detail lives in each module's `doc/tech_spec.md`.
+>
+> **Upstream-owned — do NOT edit in a sphere.** This file documents only the core
+> template modules and is maintained by the `oduist/odusphere` upstream; editing it
+> downstream causes merge conflicts on every update. **Document this sphere's own
+> `odu_*` modules in [`architecture.local.md`](architecture.local.md)** and read
+> both files at session start.
 
 ## Modules
 | Module | Purpose | Depends | SPEC |
