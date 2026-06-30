@@ -43,3 +43,27 @@ docker compose exec odoo odoo -i odu_book -d odusphere --stop-after-init
 ```
 
 ---
+
+## Updating a sphere from the template
+
+A **sphere** is a downstream copy of this template that pulls new template
+versions from the `upstream` remote with minimal conflicts. The model — shared
+history, ownership lanes, and a `merge=ours` driver — is documented in
+[`scripts/README.md`](scripts/README.md). In short:
+
+```bash
+# Day-to-day: pull the latest template (clean 3-way merge, sphere files kept).
+./scripts/update-from-upstream.sh
+
+# One-time, only if the sphere has no shared history with upstream:
+./scripts/link-upstream-history.sh
+
+# Start a brand-new sphere as a clone (shares history from the start):
+./scripts/bootstrap-sphere.sh <target-dir> <your-sphere-git-url>
+```
+
+Document this sphere's own modules in `.docs/architecture.local.md` (not the
+upstream-owned `.docs/architecture.md`), and add gateway routes in `sphere.caddy`
+(not the `Caddyfile`). See `ODUSPHERE.md` §6.
+
+---

@@ -1,0 +1,14 @@
+# Sphere-local Caddy routes — imported by the upstream Caddyfile (`import sphere.caddy`).
+#
+# Sphere-owned: the upstream template ships an empty stub and never edits it, so it
+# never conflicts on `git merge` (also pinned `merge=ours` in .gitattributes).
+# Add THIS sphere's extra gateway routes here instead of editing the Caddyfile, so
+# upstream improvements to the base Caddyfile keep flowing in cleanly.
+#
+# These tokens are injected inside the `:80 { ... }` site block, before the static
+# catch-all. Example — proxy an extra backend path to Odoo:
+#
+#   @sphere_api path /myapi/*
+#   handle @sphere_api {
+#       reverse_proxy odoo:8069
+#   }

@@ -48,6 +48,8 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Sphere-local routes imported by the Caddyfile (`import sphere.caddy`).
+      - ./sphere.caddy:/etc/caddy/sphere.caddy:ro
       - ./website/dist:/srv:ro
       - caddy-data:/data
       - caddy-config:/config

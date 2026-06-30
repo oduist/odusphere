@@ -19,6 +19,10 @@
 		reverse_proxy odoo:8072
 	}
 
+	# Sphere-local routes (sphere-owned; see sphere.caddy). Kept here so a sphere
+	# adds its own gateway routes without editing this upstream-owned Caddyfile.
+	import sphere.caddy
+
 	# Everything else — the static Astro site (SPA fallback to index.html).
 	handle {
 		try_files {path} {path}/ /index.html

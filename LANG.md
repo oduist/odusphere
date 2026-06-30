@@ -21,7 +21,7 @@ the harness / `CLAUDE.md`; this section records the canonical choice.
 - source: en
 - targets:
 - translate: user_guide.md, admin_guide.md
-- source-only: tech_spec.md, .docs/architecture.md, changes/
+- source-only: tech_spec.md, .docs/architecture.md, .docs/architecture.local.md, changes/
 
 Rules:
 
@@ -32,7 +32,8 @@ Rules:
 - **`translate`** lists the human documents mirrored into every target language.
   Only the Userbook and the Adminbook are translated.
 - **`source-only`** documents are never translated: agent contracts
-  (`tech_spec.md`, `.docs/architecture.md`) and the change timeline (`changes/`).
+  (`tech_spec.md`, the system map `.docs/architecture.md` + `.docs/architecture.local.md`)
+  and the change timeline (`changes/`).
 - **Where mirrors live:** a target-language copy of `doc/<file>` lives at
   `doc/i18n/<lang>/<file>`. The Userbook/Adminbook serve each reader the file
   matching their Odoo language, falling back to the source file when a

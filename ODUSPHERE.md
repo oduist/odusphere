@@ -110,11 +110,14 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
      ## Seed / Demo Data           # records the module ships, if any
      ```
 
-   * **Global System Map (`.docs/architecture.md`):** A unified, high-level index of the **entire** OduSphere — every module, its models, field/method signatures, and cross-module relations. It is the **map, not the territory**: signatures and relations only, **zero code blocks and zero logic bodies**, tuned for maximum context-window efficiency. At the start of **EVERY** session you must read this file first to load a complete, cohesive, error-free picture of the system before touching any code.
+   * **Global System Map — split into a core map and a sphere map:** A unified, high-level index of the **entire** OduSphere — every module, its models, field/method signatures, and cross-module relations. It is the **map, not the territory**: signatures and relations only, **zero code blocks and zero logic bodies**, tuned for maximum context-window efficiency. The map is deliberately split across **two files** so spheres can pull upstream template updates without merge conflicts:
+     * **`.docs/architecture.md` (core, upstream-owned):** documents only the template's core modules (`odu_base`, `odu_book`). **Never edit it in a sphere** — it is maintained by the upstream template, and editing it downstream conflicts on every update.
+     * **`.docs/architecture.local.md` (sphere-owned):** where you document **this sphere's own `odu_*` modules**, same rules and format as the core map. Upstream never ships or edits this file, so it cannot conflict.
+     At the start of **EVERY** session you must read **both** files first to load a complete, cohesive, error-free picture of the system before touching any code.
 
    * **Currency & Synchronization Rule — the SPEC is always live:**
      1. The SPEC is **authoritative**: whenever SPEC and code disagree, that gap is a **defect** to be reconciled immediately, never ignored.
-     2. Documentation is part of the change, not a follow-up. In the **same task and the same commit** that touches any model, field, attribute, constraint, business rule, method, view behavior, endpoint, or security rule, you **must** first update that module's `doc/tech_spec.md`, then propagate the signature/relation deltas into `.docs/architecture.md`.
+     2. Documentation is part of the change, not a follow-up. In the **same task and the same commit** that touches any model, field, attribute, constraint, business rule, method, view behavior, endpoint, or security rule, you **must** first update that module's `doc/tech_spec.md`, then propagate the signature/relation deltas into the system map — into `.docs/architecture.local.md` for a sphere's own modules (never `.docs/architecture.md`, which is upstream-owned core).
      3. **Definition of Done:** a task is **not complete** until (a) the module SPEC fully reflects the new code, (b) the global map reflects the SPEC, and (c) the reverse-buildable test above holds — an agent could rebuild the module from the SPEC alone. If you cannot honestly claim (c), the SPEC is unfinished.
      4. **Drift check:** before declaring completion, re-read the touched SPEC against the code you just wrote and fix every divergence — missing fields, stale signatures, removed constraints, renamed methods.
 
@@ -138,7 +141,7 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
 3. Update the complete, reverse-buildable Module SPEC in `custom_addons/odu_your_module/doc/tech_spec.md` (detail level per §6 — all fields, attributes, constraints, business rules, and method contracts; no copied source).
 4. Document the end-user instructions in `custom_addons/odu_your_module/doc/user_guide.md`, and — **if the module exposes any setting or administrator task** — document those (admin-access only) in `custom_addons/odu_your_module/doc/admin_guide.md` (§6, Human layer).
 5. Record the documentation diff for today in `custom_addons/odu_your_module/doc/changes/YYYY-MM-DD.md` (§6, Change timeline layer — Added/Changed/Removed per section; append if the day-file already exists).
-6. Propagate the signature/relation deltas into the global map `.docs/architecture.md`.
+6. Propagate the signature/relation deltas into the sphere system map `.docs/architecture.local.md` (your own modules go here; never edit the upstream-owned core map `.docs/architecture.md`).
 7. Run the Definition-of-Done check (§6): verify the module is fully reconstructable from its SPEC alone, with no drift between SPEC and code, and that the day's change file reflects the snapshot delta.
 8. Deliver the output: operational code files + a brief human summary of changes.
 
@@ -148,8 +151,11 @@ Code and documentation in OduSphere are an inseparable atomic unit. You cannot c
 Strictly adhere to the following file tree layout across the repository:
 / (OduSphere project root)
 ├── .docs/                             # GLOBAL TECHNICAL LAYER
-│   └── architecture.md                # System-wide semantic map, dependencies, and signatures
-├── Caddyfile                          # Gateway configuration (Static file server + API proxy)
+│   ├── architecture.md                # System map — CORE only (upstream-owned; do not edit in a sphere)
+│   └── architecture.local.md          # System map — this sphere's own modules (sphere-owned)
+├── .gitattributes                     # Merge ownership lanes for upstream updates (merge=ours)
+├── Caddyfile                          # Gateway configuration (upstream-owned base; imports sphere.caddy)
+├── sphere.caddy                       # Sphere-owned extra gateway routes (imported by Caddyfile)
 │
 ├── addons/                     # Core Backend Addons Directory
 │   ├── odu_book/                      # System module crawling local user guides to render the manual

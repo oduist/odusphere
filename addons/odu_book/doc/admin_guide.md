@@ -4,6 +4,23 @@ This page is for administrators. It explains who can see which part of the
 **Book** and how access is controlled. It is itself visible only to **Settings**
 administrators.
 
+## Upstream updates — protected core modules
+
+`odu_base` and `odu_book` are part of the shared **OduSphere template**
+(maintained upstream), not this sphere's own work. This sphere periodically pulls
+new template versions (`./scripts/update-from-upstream.sh`).
+
+**Do not edit anything inside `addons/odu_base/` or `addons/odu_book/`.** On every
+update these two modules are taken from upstream **as-is**: any local change to
+them is silently overwritten — without a merge conflict, by design — so that
+upstream fixes always land cleanly. (Your own changes are safe everywhere else;
+the update keeps this sphere's `website/`, its own `odu_*` modules, `README.md`,
+`config/odoo.conf` and the sphere system map `.docs/architecture.local.md`.)
+
+To change or extend core behavior, **create your own `odu_*` module** that depends
+on `odu_base` — never modify the core in place. See `scripts/README.md` for the
+full update model.
+
 ## The three sections and who sees them
 
 The Book app has three menus:
