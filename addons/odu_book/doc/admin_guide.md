@@ -15,7 +15,7 @@ update these two modules are taken from upstream **as-is**: any local change to
 them is silently overwritten — without a merge conflict, by design — so that
 upstream fixes always land cleanly. (Your own changes are safe everywhere else;
 the update keeps this sphere's `website/`, its own `odu_*` modules, `README.md`,
-`LANG.md` and the sphere system map `.docs/architecture.local.md`.)
+`LANG.local.md` and the sphere system map `.docs/architecture.local.md`.)
 
 To change or extend core behavior, **create your own `odu_*` module** that depends
 on `odu_base` — never modify the core in place. See `scripts/README.md` for the
@@ -53,7 +53,8 @@ set on their Odoo user profile. For a given module and page it looks for a
 translation first and falls back to the original text when no translation exists,
 so a partially translated system still reads cleanly.
 
-- The set of languages is defined in the project's `LANG.md` file. Today the
+- The set of languages is defined in the project's `LANG.local.md` file (the
+  rules for those fields live in the upstream-owned `LANG.md`). Today the
   documentation ships in English only (`source: en`, no targets yet).
 - Translations are **pre-generated files**, not live machine translation — there
   is no per-request translation cost or external service.

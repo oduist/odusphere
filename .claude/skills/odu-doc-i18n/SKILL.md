@@ -4,8 +4,8 @@ description: >
   Manage multilingual OduSphere documentation. Use when adding, syncing,
   checking, or removing a documentation language — when the user says "add a
   language to the docs", "translate the documentation", "mirror the guides to
-  <lang>", "sync translations", "check translation drift", or mentions LANG.md
-  targets. Translates each module's human guides (user_guide.md, admin_guide.md)
+  <lang>", "sync translations", "check translation drift", or mentions LANG.md /
+  LANG.local.md targets. Translates each module's human guides (user_guide.md, admin_guide.md)
   from the source language into target-language mirrors under doc/i18n/<lang>/,
   keeping them in sync with the source.
 ---
@@ -16,10 +16,11 @@ Mirror OduSphere's **human** documentation into additional languages and keep
 the mirrors in sync with the source. This skill operates only on files; the
 translation itself is done by you (the agent).
 
-## Scope — read `LANG.md` first
+## Scope — read `LANG.md` + `LANG.local.md` first
 
-`LANG.md` (repo root) is the single source of truth. Honour its `Documentation`
-section:
+`LANG.md` (repo root) is the upstream-owned **policy** (what the fields mean);
+`LANG.local.md` (repo root) is the sphere-owned **selection** — the actual
+values you read and write. Honour its `Documentation` section:
 
 - `source` — canonical authoring language (do not translate away from it).
 - `targets` — languages to mirror into.
@@ -42,7 +43,7 @@ Invoke as `odu-doc-i18n <command> [lang]`.
    exists in the source: translate it and write the mirror at
    `doc/i18n/<lang>/<file>` (create dirs as needed).
 3. Stamp each mirror with the provenance marker (see below).
-4. Add `<lang>` to `targets` in `LANG.md`.
+4. Add `<lang>` to `targets` in `LANG.local.md`.
 5. Append a `doc/changes/<today>.md` entry per touched module (the change log is
    itself source-only — write the entry in the `source` language).
 6. Run `check <lang>` and report it is clean.
@@ -61,7 +62,8 @@ gone). Exit clean only when all three are empty. Use this in the Definition of
 Done before declaring a docs task complete.
 
 ### `remove <lang>`
-Delete every `doc/i18n/<lang>/` folder and remove `<lang>` from `targets`.
+Delete every `doc/i18n/<lang>/` folder and remove `<lang>` from `targets` in
+`LANG.local.md`.
 
 ## Provenance marker
 
@@ -90,6 +92,6 @@ SHA is over the **raw bytes of the source file** at translation time and is what
 ## Definition of Done (after any command that writes)
 
 1. `check` is clean for every target language.
-2. `LANG.md` `targets` reflects reality.
+2. `LANG.local.md` `targets` reflects reality.
 3. The matching `doc/changes/<today>.md` entries exist (source language).
 4. Nothing under `source-only` was translated.
