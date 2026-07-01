@@ -1,6 +1,7 @@
 # Astro frontend build artifacts.
 website/node_modules/
 website/.astro/
+website/dist/
 
 # Environment secrets.
 .env

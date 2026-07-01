@@ -9,7 +9,7 @@
 - Flags: `application = False`, `installable = True`, `auto_install` not set.
 - `depends`: `["base"]` — must extend `ir.module.module`, which lives in `base`; no business apps.
 - External Python libs: none.
-- `data`: `views/ir_module_views.xml`.
+- `data`: `security/ir.model.access.csv`, `views/ir_module_views.xml`, `views/odu_contact_views.xml`.
 - Assets: none.
 
 ## Models & Fields
@@ -21,6 +21,16 @@
     Incubator is allowed to build upon (base identity/ORM + web UI client).
   - `ALLOWED_PARAM = "odu_base.allowed_non_odu_modules"` — system-parameter key holding
     extra allowed module names.
+- `odu.contact.message` — `models.Model`, `_description = "Contact Request"`,
+  `_order = "create_date desc"`, `_rec_name = "name"`. Stores a public website
+  contact-form submission. Fields:
+  - `name` (Char, `required=True`) — sender name.
+  - `email` (Char, `required=True`) — sender email.
+  - `message` (Text, `required=True`) — the message body.
+  - `handled` (Boolean, `default=False`, `help` set) — administrator triage flag, set
+    once the request has been processed.
+  - The inherited `create_date` is the received timestamp (shown in the inbox and the
+    `_order` key); no other stored state.
 
 ## Constraints & Invariants
 - No SQL constraints, no `@api.constrains`. The invariant is enforced imperatively at
@@ -74,7 +84,11 @@
   - Pure predicate: `module_name.startswith(ODU_PREFIX) or module_name in allowed_names`.
 
 ## Security
-- No `ir.model.access.csv`, no new groups, no record rules — the module defines no new model.
+- `security/ir.model.access.csv` — one rule: `odu.contact.message` is granted full CRUD
+  (read/write/create/unlink) to `base.group_system` **only**. No other group has any
+  access — the public contact endpoint writes via `sudo()`, and the inbox is
+  administrator-only.
+- No new groups, no record rules.
 - The system parameter is read with `sudo()`; writing it requires the standard
   `ir.config_parameter` access (Settings/admin), so only administrators can widen the
   allowlist.
@@ -86,11 +100,33 @@
     `[('name', '=like', 'odu_%')]`, restricting the Apps listing to OduSphere modules.
   - `base.menu_third_party` (ir.ui.menu) — `active` set to `False`, hiding the
     "Third-Party Apps" menu entry.
-- The only other user-visible surface is the `UserError` dialog shown when an install is
-  refused.
+- The contact inbox (`views/odu_contact_views.xml`) adds, for `odu.contact.message`:
+  - list view `view_odu_contact_message_list` — columns Received (`create_date`), `name`,
+    `email`, `handled` (`boolean_toggle`); `decoration-muted` on handled rows.
+  - form view `view_odu_contact_message_form` — `name`, `email` (`email` widget), Received,
+    `handled`, and the `message` body.
+  - search view `view_odu_contact_message_search` — search on name/email/message + an
+    `Unhandled` filter (`[('handled', '=', False)]`).
+  - action `action_odu_contact_message` ("Contact Requests", `view_mode=list,form`, context
+    `{'search_default_unhandled': 1}`).
+  - menu `menu_odu_contact_messages` ("Contact Requests") under `base.menu_administration`
+    (Settings), `groups="base.group_system"` — administrator-only.
+- The other user-visible surface is the `UserError` dialog shown when an install is refused.
 
 ## API Endpoints
-- None.
+- `POST /api/contact` — `type=http`, `auth=public`, `methods=["POST"]`, `csrf=False`.
+  - Purpose: backs the starter website's contact form (ODUSPHERE.md §5 convention — public
+    REST endpoints of `odu_*` modules live under `/api/*`). Triggered by the website
+    `fetch`.
+  - Request: JSON body `{"name", "email", "message"}` plus an optional `company` honeypot.
+  - Behavior: parse JSON (400 `"Invalid request."` on failure / non-object); if `company`
+    is non-empty (honeypot) return `{"ok": true}` and store **nothing**; trim fields;
+    require non-empty `name`/`email`/`message` (400 `"Name, email and message are
+    required."`); validate email shape (400 `"Please provide a valid email address."`);
+    cap lengths (name 200, email 254, message 5000); then create one `odu.contact.message`
+    via `sudo()` (the public user holds no access).
+  - Response: `{"ok": true}` (HTTP 200) on success; `{"ok": false, "error": <reason>}`
+    (HTTP 400) on bad input.
 
 ## Automation
 - None — no crons, no server/automated actions.

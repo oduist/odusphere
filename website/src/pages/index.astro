@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import ContactForm from "../components/ContactForm.astro";
+import { site } from "../site.config";
+---
+
+<Base description={site.tagline}>
+  <section class="relative overflow-hidden">
+    {/* soft radial brand glow */}
+    <div
+      class="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu blur-3xl"
+      aria-hidden="true"
+    >
+      <div
+        class="mx-auto aspect-[1155/678] w-[72rem] bg-gradient-to-tr from-brand-50 to-brand-500/30 opacity-40"
+      >
+      </div>
+    </div>
+
+    <div class="mx-auto max-w-5xl px-6 py-24 text-center sm:py-32">
+      <span
+        class="inline-flex items-center rounded-full border border-brand-500/30 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
+      >
+        Living ERP · Zero bloat
+      </span>
+
+      <h1 class="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-6xl">
+        {site.name}
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-lg font-medium text-brand-700 sm:text-xl">
+        {site.tagline}
+      </p>
+      <p class="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600">
+        {site.blurb}
+      </p>
+
+      <div class="mt-10 flex items-center justify-center gap-x-6">
+        <a
+          href={site.cta.href}
+          class="rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+        >
+          {site.cta.label} &rarr;
+        </a>
+        <a href="#contact" class="text-sm font-semibold text-slate-700 hover:text-slate-900">
+          Contact us
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <ContactForm />
+</Base>
