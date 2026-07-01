@@ -26,7 +26,7 @@ website/**                    merge=ours
 .docs/architecture.local.md   merge=ours
 sphere.caddy                  merge=ours
 README.md                     merge=ours
-LANG.md                       merge=ours
+LANG.local.md                 merge=ours
 
 # --- Upstream-owned core modules: always take upstream -------------------------
 # A sphere must NOT edit these (the governance core + the Book). If it does, the
@@ -36,7 +36,7 @@ addons/odu_base/**            merge=theirs
 addons/odu_book/**            merge=theirs
 
 # Everything else uses the default 3-way merge so upstream changes to the
-# contract (ODUSPHERE.md, AGENTS.md), the scripts, Caddyfile and
+# contract (ODUSPHERE.md, AGENTS.md, LANG.md), the scripts, Caddyfile and
 # .docs/architecture.md flow in.
 #
 # NOTE: merge=union is deliberately NOT used for .docs/architecture.md — on a
