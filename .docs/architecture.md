@@ -21,6 +21,7 @@
   - `_odu_allowed_module_names(self) -> set[str]` — `ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param.
   - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
   - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
+- `odu.contact.message` (`odu_base`) — `Model`; public contact-form submissions. Fields: `name` (Char, req), `email` (Char, req), `message` (Text, req), `handled` (Boolean, default `False`). `_order="create_date desc"`, `_rec_name="name"`.
 - `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector. Human guides served per reader language (`doc/i18n/<lang>/`, source fallback); language policy in root `LANG.md`.
   - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` `doc/user_guide.md` (Userbook).
   - `get_admin_book(self) -> {"pages": [...]}` — `@api.model`; aggregates `doc/admin_guide.md` (Adminbook). Raises `AccessError` unless caller `has_group("base.group_system")`.
@@ -34,11 +35,13 @@
 - `odu_book/models/markdown.py` → `md_to_html(text) -> html` — dependency-free Markdown→HTML renderer; escapes all input; `diff` fenced blocks colour `+`/`-` lines (`.o_diff_add`/`.o_diff_del`).
 
 ## HTTP Endpoints
+- `POST /api/contact` (`odu_base`) — `http`, `auth=public`, `csrf=False` → parses + honeypot-filters + validates JSON `{name,email,message}`, creates `odu.contact.message` via `sudo()`. Returns `{"ok": bool, "error"?}` (200 ok / 400 bad input).
 - `POST /odu_book/book` — `jsonrpc`, `auth=user` → `odu.book.get_book()`.
 - `POST /odu_book/admin` — `jsonrpc`, `auth=user` → `odu.book.get_admin_book()` (admin-only; raises `AccessError` for non-`base.group_system`).
 - `POST /odu_book/changes` — `jsonrpc`, `auth=user` → `odu.book.get_changes()`.
 
 ## Client Actions & Menus
+- `action_odu_contact_message` (`odu_base`; `ir.actions.act_window`, `odu.contact.message`, `list,form`, default filter Unhandled) ↔ menu `menu_odu_contact_messages` "Contact Requests" under `base.menu_administration` (Settings), `groups="base.group_system"` — admin-only contact inbox.
 - `action_odu_book` (`ir.actions.client`, tag `odu_book.book`) ↔ OWL `BookApp` (template `odu_book.BookApp`, static `endpoint`).
 - `action_odu_book_admin` (`ir.actions.client`, tag `odu_book.admin`) ↔ OWL `AdminBookApp` (subclass of `BookApp`, `endpoint=/odu_book/admin`).
 - `action_odu_book_changes` (`ir.actions.client`, tag `odu_book.changes`) ↔ OWL `ChangesApp` (template `odu_book.ChangesApp`).
@@ -56,5 +59,5 @@
 - `odu_base` reshapes the existing Apps UI (data records, no new views): pins `base.open_module_tree` domain to `[('name','=like','odu_%')]` (Apps lists only `odu_` modules) and deactivates the `base.menu_third_party` ("Third-Party Apps") menu.
 
 ## Security Surface
-- `odu_base`: no new model/ACL/groups; install policy enforced in `button_install` (UI path only — CLI `-i` is out of scope by design). Allowlist widened only via the `odu_base.allowed_non_odu_modules` system parameter (admin-only).
+- `odu_base`: install policy enforced in `button_install` (UI path only — CLI `-i` is out of scope by design); allowlist widened only via the `odu_base.allowed_non_odu_modules` system parameter (admin-only). Adds model `odu.contact.message` with a single ACL: full CRUD to `base.group_system` only — the public `/api/contact` endpoint writes via `sudo()`, and the inbox menu is admin-only.
 - `odu_book`: no model ACL/groups (AbstractModel); Userbook & Changes endpoints/menus open to all internal users; reads `ir.module.module` via `sudo()`. **Adminbook** (`get_admin_book` / `/odu_book/admin` / `menu_odu_book_admin`) is restricted to `base.group_system` — enforced server-side (`AccessError`) and in the menu (`groups`).

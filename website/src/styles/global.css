@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Sphere-tunable design tokens (Tailwind v4 in-CSS theming). These generate the
+   `brand-*` utilities used across the site. Most branding lives in
+   src/site.config.ts; tweak colors here only for deeper theming. */
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+}
+
+html {
+  scroll-behavior: smooth;
+}

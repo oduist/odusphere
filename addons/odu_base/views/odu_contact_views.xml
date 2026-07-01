@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Admin inbox for contact requests submitted through the public website. -->
+
+    <record id="view_odu_contact_message_list" model="ir.ui.view">
+        <field name="name">odu.contact.message.list</field>
+        <field name="model">odu.contact.message</field>
+        <field name="arch" type="xml">
+            <list string="Contact Requests" decoration-muted="handled">
+                <field name="create_date" string="Received"/>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="handled" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_odu_contact_message_form" model="ir.ui.view">
+        <field name="name">odu.contact.message.form</field>
+        <field name="model">odu.contact.message</field>
+        <field name="arch" type="xml">
+            <form string="Contact Request">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="email" widget="email"/>
+                        <field name="create_date" string="Received"/>
+                        <field name="handled"/>
+                    </group>
+                    <group string="Message">
+                        <field name="message" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_odu_contact_message_search" model="ir.ui.view">
+        <field name="name">odu.contact.message.search</field>
+        <field name="model">odu.contact.message</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="message"/>
+                <filter name="unhandled" string="Unhandled"
+                        domain="[('handled', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_odu_contact_message" model="ir.actions.act_window">
+        <field name="name">Contact Requests</field>
+        <field name="res_model">odu.contact.message</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_unhandled': 1}</field>
+    </record>
+
+    <menuitem id="menu_odu_contact_messages"
+              name="Contact Requests"
+              parent="base.menu_administration"
+              action="action_odu_contact_message"
+              groups="base.group_system"
+              sequence="50"/>
+
+</odoo>

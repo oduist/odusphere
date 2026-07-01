@@ -25,7 +25,9 @@ the system, preserving the Zero-Bloat architecture.
     "license": "LGPL-3",
     "depends": ["base"],
     "data": [
+        "security/ir.model.access.csv",
         "views/ir_module_views.xml",
+        "views/odu_contact_views.xml",
     ],
     "application": False,
     "installable": True,

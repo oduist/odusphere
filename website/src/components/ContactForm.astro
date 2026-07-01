@@ -1,0 +1,106 @@
+---
+// Contact form — posts to odu_base's public `POST /api/contact` endpoint.
+// The sphere gateway must proxy /api/* to Odoo (ODUSPHERE.md §5). The submission
+// is persisted as an `odu.contact.message` record and shown in the admin inbox.
+---
+
+<section id="contact" class="border-t border-slate-200 bg-slate-50">
+  <div class="mx-auto max-w-xl px-6 py-20">
+    <h2 class="text-2xl font-bold tracking-tight text-slate-900">Get in touch</h2>
+    <p class="mt-2 text-slate-600">Send us a message and we'll get back to you.</p>
+
+    <form id="contact-form" class="mt-8 space-y-5" novalidate>
+      {/* Honeypot: hidden from humans, tempting to bots. The server drops any
+          submission where this is filled in. */}
+      <div class="hidden" aria-hidden="true">
+        <label>
+          Company
+          <input type="text" name="company" tabindex="-1" autocomplete="off" />
+        </label>
+      </div>
+
+      <div>
+        <label for="cf-name" class="block text-sm font-medium text-slate-700">Name</label>
+        <input
+          id="cf-name"
+          name="name"
+          type="text"
+          required
+          autocomplete="name"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+        />
+      </div>
+
+      <div>
+        <label for="cf-email" class="block text-sm font-medium text-slate-700">Email</label>
+        <input
+          id="cf-email"
+          name="email"
+          type="email"
+          required
+          autocomplete="email"
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+        />
+      </div>
+
+      <div>
+        <label for="cf-message" class="block text-sm font-medium text-slate-700">Message</label>
+        <textarea
+          id="cf-message"
+          name="message"
+          rows="4"
+          required
+          class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+        ></textarea>
+      </div>
+
+      <button
+        type="submit"
+        class="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        Send message
+      </button>
+
+      <p data-status role="status" aria-live="polite" class="text-sm text-slate-600"></p>
+    </form>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+  if (form) {
+    const status = form.querySelector("[data-status]") as HTMLElement;
+    const button = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(form).entries());
+      button.disabled = true;
+      status.className = "text-sm text-slate-600";
+      status.textContent = "Sending…";
+
+      try {
+        const response = await fetch("/api/contact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => ({}));
+
+        if (response.ok && result.ok) {
+          form.reset();
+          status.className = "text-sm font-medium text-green-700";
+          status.textContent = "Thanks — your message has been sent.";
+        } else {
+          status.className = "text-sm font-medium text-red-700";
+          status.textContent = result.error || "Something went wrong. Please try again.";
+        }
+      } catch {
+        status.className = "text-sm font-medium text-red-700";
+        status.textContent = "Network error. Please try again.";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+</script>

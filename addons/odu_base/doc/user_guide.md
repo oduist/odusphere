@@ -32,16 +32,7 @@ message:
 
 Installing an OduSphere module (anything named `odu_…`) works normally.
 
-## Allowing an extra framework module (administrators)
+## Administrator settings
 
-In rare cases a legitimate technical framework module is needed as a building block.
-An administrator can extend the allowed list without changing any code:
-
-1. Enable developer mode.
-2. Go to **Settings → Technical → System Parameters**.
-3. Create (or edit) the parameter **`odu_base.allowed_non_odu_modules`**.
-4. Set its value to a comma-separated list of the extra module names to allow, for
-   example: `web, base, your_extra_module`.
-
-The built-in framework modules (`base`, `web`) are always allowed, even if they are not
-listed in the parameter.
+Configurable settings — such as allowing an extra framework module to install — are
+administrator tasks and are documented in this module's **Admin Guide**.
