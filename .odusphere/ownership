@@ -1,0 +1,18 @@
+# OduSphere ownership manifest — the machine-readable boundary between the
+# upstream-owned CORE (read-only for the sphere and its agent) and the
+# SPHERE-owned lane (writable). Human documentation: .docs/ownership.md.
+#
+# Consumed by the OduSphere CLI to build the agent-container mount plan and the
+# deploy-time core-integrity gate.
+#
+# Format: one `<mode> <path>` per line; `mode` is `rw` or `ro`; `path` is a
+# DIRECTORY relative to the repo root (directories only — single-file bind
+# mounts break on git's rename-replace). A deeper path overrides its parent.
+# Every path not covered by an `rw` line is core: read-only for the agent and
+# verified byte-for-byte against the upstream template at deploy time.
+# `.git/` is not listed — the CLI always mounts it rw (the agent must be able
+# to commit and push).
+
+rw sphere/
+rw .claude/skills/
+ro .claude/skills/odu-doc-i18n/

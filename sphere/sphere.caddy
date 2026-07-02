@@ -1,0 +1,12 @@
+# Sphere-local Caddy routes — merged into the CLI-generated gateway config.
+#
+# Sphere-owned: the upstream template ships an empty stub and never edits it.
+# Add THIS sphere's extra gateway routes here; the OduSphere CLI injects these
+# tokens inside the site block, before the static catch-all.
+#
+# Example — proxy an extra backend path to Odoo:
+#
+#   @sphere_api path /myapi/*
+#   handle @sphere_api {
+#       reverse_proxy odoo:8069
+#   }

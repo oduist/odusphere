@@ -1,34 +1,32 @@
-# Merge ownership lanes for upstream updates (see scripts/README.md).
+# Merge ownership lanes for upstream updates (see .docs/ownership.md).
 #
-# A sphere pulls new template versions from the `upstream` remote via
-# scripts/update-from-upstream.sh. This file declares, per path, who wins a merge
+# A sphere pulls new template versions from the `upstream` remote (the CLI's
+# update_sphere_from_upstream). This file declares, per path, who wins a merge
 # conflict so updates stay "seamless, light, conflict-free":
 #
 #   merge=ours   -> on a 3-way CONTENT conflict, keep OUR (the sphere's) version
-#                   and discard upstream's hunk. Used for files a sphere fully
-#                   owns and never wants upstream to overwrite.
+#                   and discard upstream's hunk. Used for the sphere-owned lane.
 #   merge=theirs -> on a 3-way CONTENT conflict, take UPSTREAM's version. Used for
 #                   the upstream-owned core modules (odu_base, odu_book): a sphere
 #                   MUST NOT edit them (see odu_book Admin Guide), so upstream
 #                   always wins and core updates apply seamlessly.
 #   (no rule)    -> normal 3-way merge: upstream improvements flow in. Used for
-#                   the contract files a sphere does NOT edit.
+#                   the core contract files a sphere does NOT edit.
+#
+# The authoritative boundary (also enforced by read-only mounts and the deploy
+# gate) is the manifest .odusphere/ownership; these lanes mirror it for git.
 #
 # IMPORTANT: a `merge=ours` driver only fires on a real 3-way content conflict.
 # It does NOT cover files upstream ADDS that the sphere lacks (a clean add), nor
-# modify/delete tree conflicts. The update script handles those residuals.
+# modify/delete tree conflicts. The CLI update flow handles those residuals.
 #
-# The `ours` driver itself lives in .git/config (it cannot be committed); the
-# update/link scripts register it idempotently with `git config merge.ours.driver true`.
+# The `ours`/`theirs` drivers live in .git/config (they cannot be committed);
+# the CLI registers them idempotently before every merge.
 
-# --- Sphere-owned: keep ours on conflict ---------------------------------------
-website/**                    merge=ours
-.docs/architecture.local.md   merge=ours
-sphere.caddy                  merge=ours
-README.md                     merge=ours
-LANG.local.md                 merge=ours
+# --- Sphere-owned lane: keep ours on conflict -----------------------------------
+sphere/**                     merge=ours
 
-# --- Upstream-owned core modules: always take upstream -------------------------
+# --- Upstream-owned core modules: always take upstream --------------------------
 # A sphere must NOT edit these (the governance core + the Book). If it does, the
 # local change is overwritten on the next update — by design — so core fixes
 # always land. See the odu_book Admin Guide ("Upstream updates").
@@ -36,9 +34,10 @@ addons/odu_base/**            merge=theirs
 addons/odu_book/**            merge=theirs
 
 # Everything else uses the default 3-way merge so upstream changes to the
-# contract (ODUSPHERE.md, AGENTS.md, LANG.md), the scripts, Caddyfile and
-# .docs/architecture.md flow in.
+# contract (ODUSPHERE.md, AGENTS.md, LANG.md), the manifest (.odusphere/) and
+# .docs/ flow in. Sphere-added skills under .claude/skills/ never exist
+# upstream, so they cannot conflict and need no rule.
 #
 # NOTE: merge=union is deliberately NOT used for .docs/architecture.md — on a
 # structured table it produces duplicate/garbled rows. Sphere modules are
-# documented in the separate .docs/architecture.local.md instead (Layer 2).
+# documented in the separate sphere/docs/architecture.local.md instead.

@@ -5,8 +5,8 @@
 > **Upstream-owned — do NOT edit in a sphere.** This file documents only the core
 > template modules and is maintained by the `oduist/odusphere` upstream; editing it
 > downstream causes merge conflicts on every update. **Document this sphere's own
-> `odu_*` modules in [`architecture.local.md`](architecture.local.md)** and read
-> both files at session start.
+> `odu_*` modules in [`sphere/docs/architecture.local.md`](../sphere/docs/architecture.local.md)**
+> and read both files at session start.
 
 ## Modules
 | Module | Purpose | Depends | SPEC |
@@ -22,7 +22,7 @@
   - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
   - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
 - `odu.contact.message` (`odu_base`) — `Model`; public contact-form submissions. Fields: `name` (Char, req), `email` (Char, req), `message` (Text, req), `handled` (Boolean, default `False`). `_order="create_date desc"`, `_rec_name="name"`.
-- `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector. Human guides served per reader language (`doc/i18n/<lang>/`, source fallback); language policy in root `LANG.md`, selections in `LANG.local.md`.
+- `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector. Human guides served per reader language (`doc/i18n/<lang>/`, source fallback); language policy in root `LANG.md`, selections in `sphere/LANG.local.md`.
   - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` `doc/user_guide.md` (Userbook).
   - `get_admin_book(self) -> {"pages": [...]}` — `@api.model`; aggregates `doc/admin_guide.md` (Adminbook). Raises `AccessError` unless caller `has_group("base.group_system")`.
   - `_doc_lang(self) -> str` — short doc-language code from `context['lang']`/`user.lang` (`en_US`→`en`, default `en`).
@@ -53,7 +53,7 @@
 ## Cross-Module Relations
 - Every `odu_*` module declares `odu_base` in its manifest `depends` (mandatory governance base; ODUSPHERE.md §3). `odu_book` → `depends(odu_base, web)`.
 - `odu_book` consumes other `odu_*` modules' `doc/user_guide.md`, `doc/admin_guide.md`, `doc/changes/*.md` and translated mirrors `doc/i18n/<lang>/*.md` at the filesystem level, not via ORM relations.
-- Documentation language policy: root `LANG.md` (rules) + `LANG.local.md` (sphere selections: source `en`, no targets yet); translations managed by the `odu-doc-i18n` skill, not consumed by `odu_book` at runtime.
+- Documentation language policy: root `LANG.md` (rules) + `sphere/LANG.local.md` (sphere selections: source `en`, no targets yet); translations managed by the `odu-doc-i18n` skill, not consumed by `odu_book` at runtime.
 
 ## UI Overrides
 - `odu_base` reshapes the existing Apps UI (data records, no new views): pins `base.open_module_tree` domain to `[('name','=like','odu_%')]` (Apps lists only `odu_` modules) and deactivates the `base.menu_third_party` ("Third-Party Apps") menu.

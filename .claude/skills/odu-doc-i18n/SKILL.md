@@ -16,10 +16,10 @@ Mirror OduSphere's **human** documentation into additional languages and keep
 the mirrors in sync with the source. This skill operates only on files; the
 translation itself is done by you (the agent).
 
-## Scope — read `LANG.md` + `LANG.local.md` first
+## Scope — read `LANG.md` + `sphere/LANG.local.md` first
 
 `LANG.md` (repo root) is the upstream-owned **policy** (what the fields mean);
-`LANG.local.md` (repo root) is the sphere-owned **selection** — the actual
+`sphere/LANG.local.md` is the sphere-owned **selection** — the actual
 values you read and write. Honour its `Documentation` section:
 
 - `source` — canonical authoring language (do not translate away from it).
@@ -27,7 +27,7 @@ values you read and write. Honour its `Documentation` section:
 - `translate` — the files mirrored per module (currently `user_guide.md`,
   `admin_guide.md`). **Only these.**
 - `source-only` — never translate (`tech_spec.md`, `.docs/architecture.md`,
-  `changes/`).
+  `sphere/docs/architecture.local.md`, `changes/`).
 
 Mirrors live at `<module>/doc/i18n/<lang>/<file>`, a per-language copy of the
 `translate` files. `odu_book` serves the reader the mirror matching their Odoo
@@ -43,7 +43,7 @@ Invoke as `odu-doc-i18n <command> [lang]`.
    exists in the source: translate it and write the mirror at
    `doc/i18n/<lang>/<file>` (create dirs as needed).
 3. Stamp each mirror with the provenance marker (see below).
-4. Add `<lang>` to `targets` in `LANG.local.md`.
+4. Add `<lang>` to `targets` in `sphere/LANG.local.md`.
 5. Append a `doc/changes/<today>.md` entry per touched module (the change log is
    itself source-only — write the entry in the `source` language).
 6. Run `check <lang>` and report it is clean.
@@ -63,7 +63,7 @@ Done before declaring a docs task complete.
 
 ### `remove <lang>`
 Delete every `doc/i18n/<lang>/` folder and remove `<lang>` from `targets` in
-`LANG.local.md`.
+`sphere/LANG.local.md`.
 
 ## Provenance marker
 
@@ -92,6 +92,6 @@ SHA is over the **raw bytes of the source file** at translation time and is what
 ## Definition of Done (after any command that writes)
 
 1. `check` is clean for every target language.
-2. `LANG.local.md` `targets` reflects reality.
+2. `sphere/LANG.local.md` `targets` reflects reality.
 3. The matching `doc/changes/<today>.md` entries exist (source language).
 4. Nothing under `source-only` was translated.
