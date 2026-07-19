@@ -21,6 +21,20 @@ class TestInstallPolicy(TransactionCase):
         allowed = self.Module._odu_allowed_module_names()
         self.assertTrue(self.Module._odu_is_allowed("base", allowed))
         self.assertTrue(self.Module._odu_is_allowed("web", allowed))
+        self.assertTrue(self.Module._odu_is_allowed("mail", allowed))
+
+    def test_allowed_framework_module_pulls_in_its_dependencies(self):
+        """Allowing a framework root implicitly allows its dependency closure."""
+        allowed = self.Module._odu_allowed_module_names()
+        self.assertIn("mail", allowed, "mail is a framework default")
+        mail = self.Module.search([("name", "=", "mail")], limit=1)
+        self.assertTrue(mail, "the 'mail' module must be on the addons path")
+        for dep_name in mail.dependencies_id.mapped("name"):
+            self.assertIn(
+                dep_name,
+                allowed,
+                f"{dep_name} is a dependency of the allowed 'mail' and must be allowed too",
+            )
 
     def test_predicate_business_app_forbidden(self):
         allowed = self.Module._odu_allowed_module_names()
@@ -38,16 +52,17 @@ class TestInstallPolicy(TransactionCase):
         self.assertTrue(ALLOWED_FRAMEWORK_MODULES <= allowed)
 
     def test_button_install_blocks_non_odu_module(self):
-        forbidden = self.Module.search(
-            [
-                ("state", "=", "uninstalled"),
-                ("name", "not like", "odu_%"),
-                ("name", "not in", list(ALLOWED_FRAMEWORK_MODULES)),
-            ],
-            limit=1,
+        # Exclude the full allowed set (framework roots + their dependency
+        # closure), so we never accidentally pick a now-allowed transitive
+        # dependency such as ``bus`` or ``base_setup``.
+        allowed = self.Module._odu_allowed_module_names()
+        candidates = self.Module.search(
+            [("state", "=", "uninstalled"), ("name", "not like", "odu_%")]
         )
+        forbidden = candidates.filtered(lambda module: module.name not in allowed)[:1]
         self.assertTrue(
-            forbidden, "Expected at least one uninstalled non-odu module to test against"
+            forbidden,
+            "Expected at least one uninstalled, non-allowed module to test against",
         )
         with self.assertRaises(UserError):
             forbidden.button_install()
