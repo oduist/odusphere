@@ -19,9 +19,10 @@
   - `button_install(self)` — override; runs `_odu_assert_installable()` then `super()`.
   - `button_immediate_install(self)` — override; same guard on the immediate-install path (independent of delegation to `button_install`).
   - `_odu_assert_installable(self) -> None` — raises `UserError("Only OduSphere modules can be installed.")` if `self | upstream_dependencies()` contains a non-installed, non-allowed module.
-  - `_odu_allowed_module_names(self) -> set[str]` — `ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param.
+  - `_odu_allowed_module_names(self) -> set[str]` — framework roots (`ALLOWED_FRAMEWORK_MODULES` ∪ `odu_base.allowed_non_odu_modules` param) unioned with their dependency closure.
+  - `_odu_dependency_closure(self, names) -> set[str]` — BFS over `dependencies_id`; every transitive dep of the roots (so allowing `mail` also allows `bus`/`base_setup`). Only roots are expanded, never `odu_` modules' deps.
   - `_odu_is_allowed(self, module_name, allowed_names) -> bool` — `odu_`-prefixed or in allowed set.
-  - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
+  - Constants: `ODU_PREFIX="odu_"`, `ALLOWED_FRAMEWORK_MODULES={"base","web","mail"}`, `ALLOWED_PARAM="odu_base.allowed_non_odu_modules"`.
 - `odu.contact.message` (`odu_base`) — `Model`; public contact-form submissions. Fields: `name` (Char, req), `email` (Char, req), `message` (Text, req), `client_ip` (Char, readonly, index — source IP for rate limiting), `handled` (Boolean, default `False`). `_order="create_date desc"`, `_rec_name="name"`.
 - `odu.book` (`odu_book`) — `AbstractModel`, no table. Userbook + Adminbook + change-timeline collector. Human guides served per reader language (`doc/i18n/<lang>/`, source fallback); language policy in root `LANG.md`, selections in `LANG.local.md`.
   - `get_book(self) -> {"pages": [{id, module, title, html}, ...]}` — `@api.model`; aggregates installed `odu_*` `doc/user_guide.md` (Userbook).

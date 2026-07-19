@@ -48,9 +48,9 @@ only) so you can identify and, if needed, block abusive sources at the gateway.
 ## Allowing an extra framework module
 
 By default only `odu_`-prefixed modules plus the framework essentials (`base`,
-`web`) may be installed. In rare cases a legitimate technical framework module is
-needed as a building block. An administrator can extend the allowed list without
-changing any code:
+`web`, `mail`) may be installed. In rare cases a legitimate technical framework
+module is needed as a building block. An administrator can extend the allowed list
+without changing any code:
 
 1. Enable developer mode.
 2. Go to **Settings → Technical → System Parameters**.
@@ -58,5 +58,10 @@ changing any code:
 4. Set its value to a comma-separated list of the extra module names to allow, for
    example: `web, base, your_extra_module`.
 
-The built-in framework modules (`base`, `web`) are always allowed, even if they
-are not listed in the parameter.
+The built-in framework modules (`base`, `web`, `mail`) are always allowed, even if
+they are not listed in the parameter. **You only ever list a module you allow
+directly — its own dependencies are allowed automatically.** For example allowing
+`mail` also permits the `bus` and `base_setup` modules it is built on, so you never
+have to hunt down and list transitive framework dependencies yourself. This
+auto-allow applies only to the modules you explicitly allow; it never opens the
+door to business apps.

@@ -7,10 +7,15 @@ ODU_PREFIX = "odu_"
 
 #: Framework modules the Incubator is allowed to build upon even though they do
 #: not carry the ``odu_`` prefix. Kept intentionally minimal: the base
-#: identity/ORM layer (``base`` -> res.users / res.company / res.partner / ir.*)
-#: and the web UI client (``web``). Extra names can be appended at runtime
-#: through the ``odu_base.allowed_non_odu_modules`` system parameter.
-ALLOWED_FRAMEWORK_MODULES = frozenset({"base", "web"})
+#: identity/ORM layer (``base`` -> res.users / res.company / res.partner / ir.*),
+#: the web UI client (``web``) and the messaging/activity framework (``mail`` ->
+#: chatter, activities, mail templates). These are *framework* tiers, not business
+#: applications. Allowing a module here also implicitly allows the modules it is
+#: built on (its dependency closure) — see :meth:`_odu_allowed_module_names` — so
+#: ``mail`` transparently permits ``bus`` / ``base_setup`` without listing each.
+#: Extra names can be appended at runtime through the
+#: ``odu_base.allowed_non_odu_modules`` system parameter.
+ALLOWED_FRAMEWORK_MODULES = frozenset({"base", "web", "mail"})
 
 #: System parameter holding extra comma-separated module names to allow on top
 #: of :data:`ALLOWED_FRAMEWORK_MODULES`.
@@ -47,9 +52,20 @@ class IrModuleModule(models.Model):
     def _odu_allowed_module_names(self):
         """Return the full set of non-``odu_`` module names allowed to install.
 
-        :return: union of :data:`ALLOWED_FRAMEWORK_MODULES` and the names listed
-            in the ``odu_base.allowed_non_odu_modules`` system parameter
-            (comma-separated, whitespace-trimmed).
+        The set is built from the explicitly-allowed **framework roots**
+        (:data:`ALLOWED_FRAMEWORK_MODULES` plus the names listed in the
+        ``odu_base.allowed_non_odu_modules`` system parameter, comma-separated
+        and whitespace-trimmed) and then widened with the **dependency closure**
+        of those roots. Allowing a framework module therefore implicitly allows
+        the modules it is built on (e.g. allowing ``mail`` also allows ``bus``
+        and ``base_setup``), so the parameter/list never has to enumerate
+        transitive framework dependencies by hand.
+
+        Only the roots are expanded — the closure of an ``odu_`` module is *not*
+        auto-allowed, so an ``odu_`` module cannot smuggle a business app in as a
+        dependency; every such dependency is still checked on its own merits.
+
+        :return: the allowed root names unioned with their full dependency closure.
         """
         param = (
             self.env["ir.config_parameter"]
@@ -57,7 +73,32 @@ class IrModuleModule(models.Model):
             .get_param(ALLOWED_PARAM, default="")
         )
         extra = {name.strip() for name in param.split(",") if name.strip()}
-        return ALLOWED_FRAMEWORK_MODULES | extra
+        roots = ALLOWED_FRAMEWORK_MODULES | extra
+        return roots | self._odu_dependency_closure(roots)
+
+    def _odu_dependency_closure(self, names):
+        """Return the technical names of every dependency of ``names``, transitively.
+
+        Walks the declared ``dependencies_id`` graph breadth-first over whatever
+        module records exist on the addons path, independent of install state, so
+        the result is stable whether or not the framework modules are installed
+        yet.
+
+        :param names: an iterable of module technical names (the roots).
+        :return: the set of all upstream dependency names reachable from the
+            roots (the roots themselves are **not** included).
+        """
+        Module = self.env["ir.module.module"].sudo()
+        seen = set()
+        frontier = set(names)
+        while frontier:
+            modules = Module.search([("name", "in", list(frontier))])
+            frontier = set()
+            for dep_name in modules.mapped("dependencies_id.name"):
+                if dep_name not in seen:
+                    seen.add(dep_name)
+                    frontier.add(dep_name)
+        return seen
 
     def _odu_is_allowed(self, module_name, allowed_names):
         """Decide whether a single module name may be installed.

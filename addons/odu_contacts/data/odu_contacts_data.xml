@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- The Contacts > Requests workspace supersedes the administrator-only
+             inbox shipped by odu_base. Hide the duplicate Settings entry so there
+             is a single door to the same model. Admins can re-enable it by setting
+             the menu active again. -->
+        <record id="odu_base.menu_odu_contact_messages" model="ir.ui.menu">
+            <field name="active" eval="False"/>
+        </record>
+
+    </data>
+</odoo>
