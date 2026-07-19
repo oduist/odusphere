@@ -29,6 +29,17 @@ I18N_MARKER_RE = re.compile(r"\A<!--\s*i18n\b[^>]*-->[ \t]*\r?\n?")
 MODULE_PREFIX = "odu_"
 #: Group required to read the administrator documentation.
 ADMIN_GROUP = "base.group_system"
+#: A documentation-language code is a short lowercase tag (optionally ``@variant``).
+#: Anything else is rejected so a crafted ``lang`` cannot escape the doc folder
+#: when it is joined into a filesystem path.
+LANG_CODE_RE = re.compile(r"^[a-z]{2,3}(@[a-z0-9]+)?$")
+#: Skip absurdly large docs so a single file cannot dominate render time.
+MAX_DOC_BYTES = 1024 * 1024
+
+#: Rendered-Markdown cache keyed by ``(filepath, strip_marker)`` -> ``(mtime, html)``.
+#: Per-worker and bounded by the number of doc files across installed modules;
+#: invalidated automatically when a file's mtime changes (i.e. on redeploy).
+_RENDER_CACHE = {}
 
 
 class OduBook(models.AbstractModel):
@@ -87,8 +98,12 @@ class OduBook(models.AbstractModel):
         to the source file. No dependency on ``LANG.md`` at runtime -- the read
         path is purely "translated-if-present, else source".
         """
-        lang = self.env.context.get("lang") or self.env.user.lang or "en"
-        return lang.split("_")[0]
+        lang = (self.env.context.get("lang") or self.env.user.lang or "en").split("_")[0]
+        # Reject anything that is not a plain language tag so the value is safe
+        # to join into a filesystem path (no ``/``, ``.``, ``..`` traversal).
+        if not LANG_CODE_RE.match(lang):
+            return "en"
+        return lang
 
     def _collect_pages(self, filename, lang):
         """Render ``doc/<filename>`` of every installed ``odu_*`` module.
@@ -137,14 +152,48 @@ class OduBook(models.AbstractModel):
         for filepath in candidates:
             if not os.path.isfile(filepath):
                 continue
-            try:
-                with open(filepath, "r", encoding="utf-8") as handle:
-                    raw = handle.read()
-            except (OSError, UnicodeDecodeError):
-                _logger.warning("odu_book: failed to read %s", filepath)
-                return None
-            return md_to_html(I18N_MARKER_RE.sub("", raw, count=1))
+            return self._render_doc_html(filepath, strip_marker=True)
         return None
+
+    def _render_doc_html(self, filepath, strip_marker):
+        """Read, optionally de-marker, and render a Markdown file to HTML.
+
+        Cached by ``(filepath, mtime)`` so repeat Book opens don't re-read and
+        re-parse unchanged files. Oversized files are skipped, and a rendering
+        failure isolates to this one file (returns ``None``) rather than
+        breaking the whole book. Returns the rendered HTML or ``None``.
+        """
+        try:
+            stat = os.stat(filepath)
+        except OSError:
+            _logger.warning("odu_book: failed to stat %s", filepath)
+            return None
+        if stat.st_size > MAX_DOC_BYTES:
+            _logger.warning(
+                "odu_book: skipping oversized doc %s (%d bytes)",
+                filepath,
+                stat.st_size,
+            )
+            return None
+        key = (filepath, strip_marker)
+        cached = _RENDER_CACHE.get(key)
+        if cached is not None and cached[0] == stat.st_mtime:
+            return cached[1]
+        try:
+            with open(filepath, "r", encoding="utf-8") as handle:
+                raw = handle.read()
+        except (OSError, UnicodeDecodeError):
+            _logger.warning("odu_book: failed to read %s", filepath)
+            return None
+        if strip_marker:
+            raw = I18N_MARKER_RE.sub("", raw, count=1)
+        try:
+            html = md_to_html(raw)
+        except Exception:  # noqa: BLE001 — one bad file must not sink the book
+            _logger.exception("odu_book: failed to render %s", filepath)
+            return None
+        _RENDER_CACHE[key] = (stat.st_mtime, html)
+        return html
 
     @api.model
     def get_changes(self):
@@ -202,11 +251,8 @@ class OduBook(models.AbstractModel):
             if not match:
                 continue
             filepath = os.path.join(changes_dir, filename)
-            try:
-                with open(filepath, "r", encoding="utf-8") as handle:
-                    raw = handle.read()
-            except (OSError, UnicodeDecodeError):
-                _logger.warning("odu_book: failed to read %s", filepath)
+            html = self._render_doc_html(filepath, strip_marker=False)
+            if html is None:
                 continue
-            result.append((match.group(1), md_to_html(raw)))
+            result.append((match.group(1), html))
         return result

@@ -26,6 +26,7 @@
                         <field name="name"/>
                         <field name="email" widget="email"/>
                         <field name="create_date" string="Received"/>
+                        <field name="client_ip"/>
                         <field name="handled"/>
                     </group>
                     <group string="Message">

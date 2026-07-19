@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import re
+from datetime import timedelta
 
-from odoo import http
+from odoo import fields, http
 from odoo.http import request
 
 #: Permissive email shape check — real validation is whether delivery works.
@@ -11,6 +12,18 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _MAX_NAME = 200
 _MAX_EMAIL = 254
 _MAX_MESSAGE = 5000
+_MAX_IP = 64
+
+#: Hard cap on the raw request body. Enforced before the JSON is parsed so a
+#: public caller cannot force the server to buffer a huge payload in memory.
+#: (The gateway caps this too; this is the guaranteed application-layer backstop.)
+_MAX_BODY_BYTES = 64 * 1024
+
+#: Admin-tunable per-IP rate limit. A max of 0 (or below) disables the limit.
+_RATE_MAX_PARAM = "odu_base.contact_rate_limit_max"
+_RATE_WINDOW_PARAM = "odu_base.contact_rate_limit_window_minutes"
+_RATE_MAX_DEFAULT = 10
+_RATE_WINDOW_DEFAULT = 10
 
 
 class OduContactController(http.Controller):
@@ -28,10 +41,21 @@ class OduContactController(http.Controller):
 
         Expects a JSON body ``{"name", "email", "message"}`` plus an optional
         ``company`` honeypot field. Returns ``{"ok": true}`` on success, or
-        ``{"ok": false, "error": ...}`` with a 400 status on bad input. Records
-        are created with ``sudo()`` because the public user holds no access on
-        the model (only administrators do).
+        ``{"ok": false, "error": ...}`` with a non-200 status on bad input.
+
+        Abuse controls for this anonymous endpoint, in order: an oversized body
+        is rejected (413) before parsing; a filled honeypot is silently dropped;
+        and once validated, submissions from the same IP are throttled (429).
+        Records are created with ``sudo()`` because the public user holds no
+        access on the model (only administrators do).
         """
+        # Reject oversized bodies before reading/parsing them.
+        content_length = request.httprequest.content_length
+        if content_length is not None and content_length > _MAX_BODY_BYTES:
+            return request.make_json_response(
+                {"ok": False, "error": "Request too large."}, status=413
+            )
+
         try:
             payload = request.get_json_data()
         except Exception:
@@ -63,11 +87,52 @@ class OduContactController(http.Controller):
                 status=400,
             )
 
+        client_ip = request.httprequest.remote_addr or ""
+        if self._contact_rate_limited(client_ip):
+            return request.make_json_response(
+                {"ok": False, "error": "Too many requests. Please try again later."},
+                status=429,
+            )
+
         request.env["odu.contact.message"].sudo().create(
             {
                 "name": name[:_MAX_NAME],
                 "email": email[:_MAX_EMAIL],
                 "message": message[:_MAX_MESSAGE],
+                "client_ip": client_ip[:_MAX_IP],
             }
         )
         return request.make_json_response({"ok": True})
+
+    def _contact_rate_limited(self, client_ip):
+        """Return ``True`` when ``client_ip`` exceeded its recent-submission quota.
+
+        The quota and window are tunable via the ``odu_base.contact_rate_limit_max``
+        and ``…_window_minutes`` system parameters; a max of 0 disables the limit.
+        Accurate per-client limiting requires Odoo ``proxy_mode`` so ``remote_addr``
+        is the real visitor's IP and not the gateway's — see the Admin Guide.
+        """
+        if not client_ip:
+            return False
+        params = request.env["ir.config_parameter"].sudo()
+        max_recent = self._int_param(params, _RATE_MAX_PARAM, _RATE_MAX_DEFAULT)
+        window = self._int_param(params, _RATE_WINDOW_PARAM, _RATE_WINDOW_DEFAULT)
+        if max_recent <= 0 or window <= 0:
+            return False
+        since = fields.Datetime.now() - timedelta(minutes=window)
+        recent = (
+            request.env["odu.contact.message"]
+            .sudo()
+            .search_count(
+                [("client_ip", "=", client_ip), ("create_date", ">=", since)]
+            )
+        )
+        return recent >= max_recent
+
+    @staticmethod
+    def _int_param(params, key, default):
+        """Read an integer system parameter, falling back to ``default``."""
+        try:
+            return int(params.get_param(key, default))
+        except (TypeError, ValueError):
+            return default

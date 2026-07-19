@@ -21,6 +21,25 @@ _OL_RE = re.compile(r"^(\s*)\d+[.)]\s+(.*)$")
 _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*([\w+#.-]*)\s*$")
 _TABLE_SEP_RE = re.compile(r"^\s*\|?\s*:?-{1,}:?\s*(\|\s*:?-{1,}:?\s*)+\|?\s*$")
 
+#: Only these URL schemes may appear in rendered links/images. A URL that
+#: carries any other explicit scheme (``javascript:``, ``data:``, ``vbscript:``…)
+#: is neutralised to ``#`` so untrusted documentation cannot smuggle script.
+#: Scheme-relative and relative URLs (no scheme) are allowed.
+_URL_SCHEME_RE = re.compile(r"^\s*([a-z][a-z0-9+.\-]*):", re.I)
+_SAFE_URL_SCHEMES = frozenset({"http", "https", "mailto"})
+
+#: Cap on nested-list recursion, a backstop against pathological/deep input
+#: overflowing the Python stack. Real documentation never nests this deep.
+_MAX_LIST_DEPTH = 12
+
+
+def _safe_url(url):
+    """Return ``url`` if its scheme is safe (or it has none), else ``"#"``."""
+    match = _URL_SCHEME_RE.match(url)
+    if match and match.group(1).lower() not in _SAFE_URL_SCHEMES:
+        return "#"
+    return url
+
 
 def md_to_html(text):
     """Convert a Markdown string into an HTML string."""
@@ -184,11 +203,13 @@ def _consume_list(lines, i, n):
             i += 1
         else:
             break
+    if not items:
+        return "", i
     html, _ = _render_list(items, 0, items[0][0])
     return html, i
 
 
-def _render_list(items, pos, base_indent):
+def _render_list(items, pos, base_indent, depth=0):
     ordered = items[pos][1]
     tag = "ol" if ordered else "ul"
     html = ["<%s>" % tag]
@@ -197,7 +218,12 @@ def _render_list(items, pos, base_indent):
         if indent < base_indent:
             break
         if indent > base_indent:
-            sub_html, pos = _render_list(items, pos, indent)
+            if depth >= _MAX_LIST_DEPTH:
+                # Too deep: render as a flat item instead of recursing further.
+                html.append("<li>%s</li>" % _inline(content))
+                pos += 1
+                continue
+            sub_html, pos = _render_list(items, pos, indent, depth + 1)
             if len(html) > 1 and html[-1].endswith("</li>"):
                 html[-1] = html[-1][:-len("</li>")] + sub_html + "</li>"
             else:
@@ -222,10 +248,17 @@ def _inline(text):
     # First stash the inline code so its contents are not formatted.
     text = re.sub(r"`([^`]+)`", _stash, text)
     text = str(escape(text))
-    text = re.sub(r"!\[([^\]]*)\]\(([^)\s]+)\)", r'<img src="\2" alt="\1"/>', text)
+    # URLs are already HTML-escaped here; still validate their scheme so a
+    # javascript:/data: link cannot execute when the HTML is injected via markup().
+    text = re.sub(
+        r"!\[([^\]]*)\]\(([^)\s]+)\)",
+        lambda m: '<img src="%s" alt="%s"/>' % (_safe_url(m.group(2)), m.group(1)),
+        text,
+    )
     text = re.sub(
         r"\[([^\]]+)\]\(([^)\s]+)\)",
-        r'<a href="\2" target="_blank" rel="noreferrer noopener">\1</a>',
+        lambda m: '<a href="%s" target="_blank" rel="noreferrer noopener">%s</a>'
+        % (_safe_url(m.group(2)), m.group(1)),
         text,
     )
     # Handle bold before italic; leave underscores alone so we don't break

@@ -13,7 +13,7 @@ assembles them into a single interactive "user book" right inside the UI.
 No separate wiki -- the documentation lives next to the module code and is
 shown to the user in a single click.
 """,
-    "version": "19.0.1.4.0",
+    "version": "19.0.1.5.0",
     "category": "Tools",
     "author": "OduSphere",
     "license": "LGPL-3",

@@ -19,7 +19,7 @@ This blocks the standard Odoo business applications (``sale``, ``purchase``,
 ``stock``, ``account``, ``crm``, ``hr``, ``product`` ...) from ever entering
 the system, preserving the Zero-Bloat architecture.
 """,
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "category": "Technical",
     "author": "OduSphere",
     "license": "LGPL-3",
