@@ -108,19 +108,24 @@ class TestS3Routing(TransactionCase):
             "access_key": "k", "secret_key": "s"})
         checksum = "ab" + "2" * 38
         marker = backend._s3_marker(checksum)
+        uploaded_marker = None
+        queued = False
         try:
             with patch.object(type(backend), "_s3_client", return_value=object()), \
                     patch("odoo.addons.odu_s3_attachment.models.s3_client.upload_dedup"):
-                self.assertEqual(backend._s3_upload(checksum, b"payload"), marker)
-            self.assertTrue(
-                self.env["odu.s3.gc"].search_count([("store_fname", "=", marker)]))
+                uploaded_marker = backend._s3_upload(checksum, b"payload")
         finally:
-            # _s3_mark_for_gc deliberately commits outside the test transaction.
+            # TransactionCase uses a stable snapshot, so verify and clean the
+            # separately committed row from another cursor.
             with self.env.registry.cursor() as cleanup_cr:
+                cleanup_cr.execute(
+                    "SELECT 1 FROM odu_s3_gc WHERE store_fname = %s", (marker,))
+                queued = bool(cleanup_cr.fetchone())
                 cleanup_cr.execute(
                     "DELETE FROM odu_s3_gc WHERE store_fname = %s", (marker,))
                 cleanup_cr.commit()
-            self.env["odu.s3.gc"].invalidate_model(["store_fname"])
+        self.assertEqual(uploaded_marker, marker)
+        self.assertTrue(queued)
 
     def test_marker_roundtrip_and_backend_resolution(self):
         backend = self.Backend.create({
@@ -174,6 +179,15 @@ class TestS3Routing(TransactionCase):
             self.assertTrue(A._s3_migrate_in_window())
         with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 12)):
             self.assertFalse(A._s3_migrate_in_window())
+        # overnight window 22..6
+        ICP.set_param("odu_s3_attachment.migrate_window_start", "22")
+        ICP.set_param("odu_s3_attachment.migrate_window_end", "6")
+        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 23)):
+            self.assertTrue(A._s3_migrate_in_window())
+        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 4)):
+            self.assertTrue(A._s3_migrate_in_window())
+        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 12)):
+            self.assertFalse(A._s3_migrate_in_window())
 
     def test_field_derived_image_size_requires_data_stream(self):
         with patch.object(
@@ -184,15 +198,6 @@ class TestS3Routing(TransactionCase):
                 ir_attachment_module, "request",
                 SimpleNamespace(params={"field": "raw"})):
             self.assertFalse(self.Attachment._s3_transform_requested())
-        # overnight window 22..6
-        ICP.set_param("odu_s3_attachment.migrate_window_start", "22")
-        ICP.set_param("odu_s3_attachment.migrate_window_end", "6")
-        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 23)):
-            self.assertTrue(A._s3_migrate_in_window())
-        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 4)):
-            self.assertTrue(A._s3_migrate_in_window())
-        with patch.object(fields.Datetime, "now", return_value=_dt.datetime(2026, 1, 1, 12)):
-            self.assertFalse(A._s3_migrate_in_window())
 
 
 @tagged("post_install", "-at_install")
