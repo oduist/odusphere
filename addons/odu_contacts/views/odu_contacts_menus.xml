@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Top-level Contacts app. No `groups` -> visible to every internal user
+         (access is granted to base.group_user in ir.model.access.csv). -->
+    <menuitem id="menu_odu_contacts_root"
+              name="Contacts"
+              sequence="10"/>
+
+    <menuitem id="menu_odu_contacts_partners"
+              name="Contacts"
+              parent="menu_odu_contacts_root"
+              action="action_odu_contacts_partners"
+              sequence="10"/>
+
+    <menuitem id="menu_odu_contacts_requests"
+              name="Requests"
+              parent="menu_odu_contacts_root"
+              action="action_odu_contact_requests"
+              sequence="20"/>
+
+</odoo>

@@ -17,8 +17,10 @@
   stored state. The module only adds policy methods over the existing model.
 - Module-level constants (`models/ir_module_module.py`):
   - `ODU_PREFIX = "odu_"` — the mandatory OduSphere module name prefix.
-  - `ALLOWED_FRAMEWORK_MODULES = frozenset({"base", "web"})` — non-`odu_` modules the
-    Incubator is allowed to build upon (base identity/ORM + web UI client).
+  - `ALLOWED_FRAMEWORK_MODULES = frozenset({"base", "web", "mail"})` — non-`odu_`
+    framework modules the Incubator is allowed to build upon (base identity/ORM, the
+    web UI client, and the `mail` messaging/activity framework — chatter, activities,
+    mail templates). These are framework tiers, not business apps.
   - `ALLOWED_PARAM = "odu_base.allowed_non_odu_modules"` — system-parameter key holding
     extra allowed module names.
 - `odu.contact.message` — `models.Model`, `_description = "Contact Request"`,
@@ -39,10 +41,15 @@
 ## Business Rules & State
 - **Installation policy (the single rule):** a module may be installed **only if** its
   technical name starts with `odu_` **or** its name is in the allowed set. The allowed set
-  is `ALLOWED_FRAMEWORK_MODULES` ∪ (names parsed from the `odu_base.allowed_non_odu_modules`
-  system parameter, comma-separated, whitespace-trimmed). Everything else (standard Odoo
-  business apps such as `sale`, `purchase`, `stock`, `account`, `crm`, `hr`, `product`, …)
-  is refused.
+  is the **framework roots** (`ALLOWED_FRAMEWORK_MODULES` ∪ names parsed from the
+  `odu_base.allowed_non_odu_modules` system parameter, comma-separated, whitespace-trimmed)
+  **plus the full dependency closure of those roots**. Expanding by the closure means
+  allowing a framework module implicitly allows the modules it is built on (allowing
+  `mail` also allows `bus`, `base_setup`, …), so the list never enumerates transitive
+  framework dependencies by hand. **Only the roots are expanded** — an `odu_` module's own
+  dependencies are *not* auto-allowed, so an `odu_` module cannot smuggle in a business app
+  as a dependency. Everything else (standard Odoo business apps such as `sale`, `purchase`,
+  `stock`, `account`, `crm`, `hr`, `product`, …) is refused.
 - **Validation scope = the full install closure.** The candidate set checked is the
   records being installed **plus every not-yet-installed upstream dependency**
   (`upstream_dependencies()`). A forbidden module pulled in only as a dependency is enough
@@ -78,8 +85,15 @@
     `UserError(_("Only OduSphere modules can be installed."))` when that filtered set is
     non-empty. Returns `None` otherwise.
 - `ir.module.module._odu_allowed_module_names(self) -> set[str]`.
-  - Reads the `odu_base.allowed_non_odu_modules` system parameter via `sudo()`, splits on
-    commas, trims, and returns the union with `ALLOWED_FRAMEWORK_MODULES`.
+  - Builds the framework roots: `ALLOWED_FRAMEWORK_MODULES` ∪ the names parsed from the
+    `odu_base.allowed_non_odu_modules` system parameter (read via `sudo()`, split on
+    commas, trimmed). Returns the roots unioned with their dependency closure
+    (`_odu_dependency_closure(roots)`).
+- `ir.module.module._odu_dependency_closure(self, names) -> set[str]`.
+  - Breadth-first walk of the declared `dependencies_id` graph over the module records on
+    the addons path, independent of install state. Returns every dependency name reachable
+    from `names` (the roots themselves excluded). This is what makes allowing `mail` also
+    allow `bus` / `base_setup`.
 - `ir.module.module._odu_is_allowed(self, module_name, allowed_names) -> bool`.
   - Pure predicate: `module_name.startswith(ODU_PREFIX) or module_name in allowed_names`.
 

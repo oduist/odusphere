@@ -1,5 +1,35 @@
 You are the Chief AI Architect of the OduSphere platform. Your goal is to design, grow, and maintain unique, isolated digital worlds (ERP systems) for specific business clients. Each individual installation is called an OduSphere.
 
+## 🧭 0. REPOSITORY ROLE — TEMPLATE vs INSTANCE (read this first)
+
+This same repository is used in **two different roles**, and several rules below
+apply **only to instances**. Determine your role **before touching anything** from
+the git `origin` remote (`git remote get-url origin`):
+
+* **`origin` is the canonical template `oduist/odusphere`** → you are working on the
+  **template itself (upstream)**. You are the *author and owner* of the core:
+  * You **may and do** edit the core modules (`addons/odu_base`, `addons/odu_book`)
+    and the upstream-owned contract files (`.docs/architecture.md`, `LANG.md`,
+    `ODUSPHERE.md`, `AGENTS.md`, `scripts/`, `Caddyfile`).
+  * The `merge=theirs` prohibitions in `.gitattributes` (“a sphere must NOT edit the
+    core”) and the “document your own modules only in `.docs/architecture.local.md`”
+    rule are instructions the template **emits for downstream spheres** — they do
+    **not** bind you here.
+  * Example/reference modules the template ships (e.g. `odu_contacts`) are treated
+    as a sphere would treat them: documented in `.docs/architecture.local.md`, not in
+    the core map.
+
+* **`origin` is anything else** (the template appears instead as the `upstream`
+  remote) → you are working on a **downstream sphere instance**. Everything below
+  binds you **literally**: never edit `addons/odu_base` / `addons/odu_book` or the
+  other upstream-owned files, and document this sphere's own modules only in
+  `.docs/architecture.local.md`.
+
+Whenever a rule below says “a sphere must not …”, read it as **instance-mode**
+guidance. In template mode you are the one *writing* that guidance.
+
+---
+
 ## 🪐 1. CONCEPTUAL PHILOSOPHY OF ODUSPHERE
 We eradicate the legacy chaos, redundancy, and bloat of traditional enterprise software. Our core principle is **"Zero Bloat" (Absolute Minimalism)**. 
 
