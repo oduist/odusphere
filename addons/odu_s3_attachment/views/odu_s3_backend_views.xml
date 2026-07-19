@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_odu_s3_backend_list" model="ir.ui.view">
+        <field name="name">odu.s3.backend.list</field>
+        <field name="model">odu.s3.backend</field>
+        <field name="arch" type="xml">
+            <list string="S3 Backends">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="bucket"/>
+                <field name="endpoint_url" optional="show"/>
+                <field name="mimetype_prefixes" string="MIME filter" optional="show"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_odu_s3_backend_form" model="ir.ui.view">
+        <field name="name">odu.s3.backend.form</field>
+        <field name="model">odu.s3.backend</field>
+        <field name="arch" type="xml">
+            <form string="S3 Backend">
+                <header>
+                    <button name="action_test_connection" type="object"
+                            string="Test Connection" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Primary documents store"/></h1>
+                    </div>
+                    <group>
+                        <group string="Identity">
+                            <field name="code" placeholder="e.g. primary"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Routing">
+                            <field name="mimetype_prefixes"
+                                   placeholder="empty = catch-all, e.g. application/pdf, image/"/>
+                        </group>
+                    </group>
+                    <group string="Connection">
+                        <group>
+                            <field name="endpoint_url" placeholder="empty = AWS S3"/>
+                            <field name="public_endpoint_url"/>
+                            <field name="bucket"/>
+                            <field name="region"/>
+                        </group>
+                        <group>
+                            <field name="access_key"/>
+                            <field name="secret_key" password="True"/>
+                            <field name="status" readonly="1"/>
+                        </group>
+                    </group>
+                    <div class="text-muted">
+                        Credentials are stored in the database and readable only by
+                        administrators. The bucket must stay private — presigned URLs are
+                        the mechanism for temporary public access.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_odu_s3_backend_search" model="ir.ui.view">
+        <field name="name">odu.s3.backend.search</field>
+        <field name="model">odu.s3.backend</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="bucket"/>
+                <filter name="inactive" string="Archived" domain="[('active', '=', False)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_odu_s3_backend" model="ir.actions.act_window">
+        <field name="name">S3 Backends</field>
+        <field name="res_model">odu.s3.backend</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add your first S3 backend</p>
+            <p>
+                Register an S3-compatible object store (AWS S3, MinIO, Wasabi,
+                Cloudflare R2, ...). User attachments will be offloaded here and
+                served through short-lived presigned URLs.
+            </p>
+        </field>
+    </record>
+
+</odoo>
