@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Administrator-only S3 storage section under Settings. -->
+    <menuitem id="menu_odu_s3_root"
+              name="S3 Storage"
+              parent="base.menu_administration"
+              groups="base.group_system"
+              sequence="90"/>
+
+    <menuitem id="menu_odu_s3_backends"
+              name="Backends"
+              parent="menu_odu_s3_root"
+              action="action_odu_s3_backend"
+              groups="base.group_system"
+              sequence="10"/>
+
+    <menuitem id="menu_odu_s3_settings"
+              name="Storage Settings"
+              parent="menu_odu_s3_root"
+              action="action_odu_s3_settings"
+              groups="base.group_system"
+              sequence="20"/>
+
+</odoo>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_odu_s3_settings_form" model="ir.ui.view">
+        <field name="name">odu.s3.settings.form</field>
+        <field name="model">odu.s3.settings</field>
+        <field name="arch" type="xml">
+            <form string="S3 Storage Settings">
+                <header>
+                    <button name="action_apply" type="object" string="Save"
+                            class="btn-primary"/>
+                    <button name="action_refresh" type="object" string="Refresh"
+                            class="btn-link"/>
+                </header>
+                <sheet>
+                    <group string="What stays in Odoo">
+                        <field name="keep_assets_local"/>
+                        <label for="keep_images_below_kb"/>
+                        <div>
+                            <field name="keep_images_below_kb" class="oe_inline"/> KB
+                            <span class="text-muted"> (0 = send all images to S3)</span>
+                        </div>
+                        <field name="keep_local_mimetypes"
+                               placeholder="e.g. application/xml, text/"/>
+                    </group>
+                    <group string="Direct download">
+                        <field name="direct_download"/>
+                        <label for="signed_url_ttl" invisible="not direct_download"/>
+                        <div invisible="not direct_download">
+                            <field name="signed_url_ttl" class="oe_inline"/> seconds
+                        </div>
+                    </group>
+                    <group string="Migrate existing attachments to S3">
+                        <div class="text-muted" colspan="2">
+                            Moves attachments already in the local filestore to S3 in the
+                            background. Safe to stop and resume; files kept local (above)
+                            and files already on S3 are skipped.
+                        </div>
+                        <field name="backend_count"/>
+                        <field name="migrated_count"/>
+                        <field name="local_count"/>
+                        <field name="migration_running"/>
+                        <field name="migrate_batch_size"/>
+                        <label for="migrate_window_start" string="Allowed time window"/>
+                        <div>
+                            <field name="migrate_window_start" class="oe_inline"/> →
+                            <field name="migrate_window_end" class="oe_inline"/> h
+                            <field name="migrate_window_tz" class="oe_inline"
+                                   placeholder="Europe/Warsaw"/>
+                            <span class="text-muted"> (set both equal to allow any time)</span>
+                        </div>
+                        <div colspan="2">
+                            <button name="action_migrate_start" type="object"
+                                    string="Start migration" class="btn-primary"
+                                    invisible="migration_running"/>
+                            <button name="action_migrate_stop" type="object"
+                                    string="Stop migration" class="btn-secondary"
+                                    invisible="not migration_running"/>
+                        </div>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_odu_s3_settings" model="ir.actions.act_window">
+        <field name="name">S3 Storage Settings</field>
+        <field name="res_model">odu.s3.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+</odoo>

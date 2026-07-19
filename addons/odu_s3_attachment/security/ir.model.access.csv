@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_odu_s3_backend_system,odu.s3.backend system,model_odu_s3_backend,base.group_system,1,1,1,1
+access_odu_s3_gc_system,odu.s3.gc system,model_odu_s3_gc,base.group_system,1,1,1,1
+access_odu_s3_settings_system,odu.s3.settings system,model_odu_s3_settings,base.group_system,1,1,1,1
