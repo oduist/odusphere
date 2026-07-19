@@ -17,6 +17,12 @@ class OduContactMessage(models.Model):
     name = fields.Char(required=True)
     email = fields.Char(required=True)
     message = fields.Text(required=True)
+    client_ip = fields.Char(
+        string="Client IP",
+        readonly=True,
+        index=True,
+        help="Source IP recorded at submission time, used for abuse rate limiting.",
+    )
     handled = fields.Boolean(
         default=False,
         help="Set once an administrator has processed this request.",

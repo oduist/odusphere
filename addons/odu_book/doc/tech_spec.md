@@ -4,7 +4,7 @@
 - Technical name: `odu_book`
 - Display name: `Book`
 - Summary: Interactive user documentation assembled from the `odu_*` modules.
-- Version: `19.0.1.4.0` (Odoo 19)
+- Version: `19.0.1.5.0` (Odoo 19)
 - Category: `Tools` · Author: `OduSphere` · License: `LGPL-3`
 - Flags: `application = True`, `installable = True`
 - `depends`: `["odu_base", "web"]` — the mandatory OduSphere governance core (`odu_base`) plus the web framework; no business apps (complies with the Incubator constraint).
@@ -25,6 +25,11 @@
   - `I18N_MARKER_RE` — matches the leading `<!-- i18n … -->` provenance line of a translated file, stripped before render.
   - `MODULE_PREFIX = "odu_"` — only modules with this prefix are collected.
   - `ADMIN_GROUP = "base.group_system"` — group required to read the Adminbook.
+  - `LANG_CODE_RE` — validates a documentation-language tag (`^[a-z]{2,3}(@[a-z0-9]+)?$`);
+    a value that fails it is not joined into a path (path-traversal guard, falls back to `en`).
+  - `MAX_DOC_BYTES = 1024*1024` — files larger than this are skipped (render-cost bound).
+  - `_RENDER_CACHE` — module-level dict `(filepath, strip_marker) -> (mtime, html)`;
+    per-worker rendered-HTML cache, invalidated when a file's mtime changes.
 
 ## Constraints & Invariants
 - None — no SQL constraints and no `@api.constrains`; the model stores no data.
@@ -35,11 +40,11 @@
   - **Adminbook** — `doc/admin_guide.md`, for system administrators only (settings & privileged tasks).
   - **Changes** — `doc/changes/*.md`, the per-day documentation-change timeline.
 - Source selection (all three views): `ir.module.module` where `state = "installed"` AND `name =like "odu_%"`, ordered by `name` ascending, read with `sudo()`.
-- Page skipping: a module whose guide is missing, unreadable, or non-UTF-8 is **silently skipped** (logged as a warning), never raised as an error.
+- Page skipping: a module whose guide is missing, unreadable, non-UTF-8, oversized (> 1 MB), or that **fails to render** is **silently skipped** (logged as a warning/exception), never raised as an error — one bad file can never sink the whole book.
 - Page title rule: `module.shortdesc or module.name`.
 - Userbook and Adminbook differ **only** in the source filename (`user_guide.md` vs `admin_guide.md`) and in access (Adminbook is admin-gated, see Security). Same rendering, same page shape.
 - Only the human guides are exposed. The agent-facing `doc/tech_spec.md` is **deliberately never** read or shown to humans.
-- HTML is rendered from Markdown at request time — no caching, no stored HTML.
+- HTML is rendered from Markdown and **cached per file by mtime** (`_RENDER_CACHE`), so repeat Book opens do not re-read/re-parse unchanged files; the cache self-invalidates when a file changes on disk (e.g. on redeploy). No HTML is stored in the database.
 - **Multilingual read-path (Userbook & Adminbook only):**
   - Each guide is served in the reader's documentation language. The language is the short code of `context['lang']` or `user.lang` (`en_US` → `en`), via `_doc_lang`.
   - Lookup order per module: `doc/i18n/<lang>/<filename>` first, then the source file `doc/<filename>`. A missing translation falls back to source **per file** (so a partially-translated system still renders fully).
@@ -66,24 +71,28 @@
   - Side effects: none (read-only; reads files from disk).
   - Trigger: the `/odu_book/admin` controller (and any server-side caller).
 - `odu.book._doc_lang(self)` — private.
-  - Returns the short documentation-language code for the request: prefix-before-`_` of `context['lang']` or `user.lang`, defaulting to `en`. Used to choose the `doc/i18n/<lang>/` mirror.
+  - Returns the short documentation-language code for the request: prefix-before-`_` of `context['lang']` or `user.lang`, defaulting to `en`. **Validated against `LANG_CODE_RE`** — a value that is not a plain language tag (so cannot contain `/`, `.`, `..`) falls back to `en`, preventing path traversal when it is joined into the `doc/i18n/<lang>/` path.
 - `odu.book._collect_pages(self, filename, lang)` — private.
   - Shared collector behind `get_book`/`get_admin_book`: renders `doc/<filename>` (in `lang`) of every installed `odu_*` module, returning the `[{id, module, title, html}, ...]` list (skipping modules without a readable file).
 - `odu.book._read_module_doc(self, module_name, filename, lang)` — private.
-  - Returns the rendered HTML of the module's guide in `lang`: tries `doc/i18n/<lang>/<filename>`, falls back to `doc/<filename>`; strips a leading i18n provenance marker before rendering. `None` when neither file exists or cannot be read/decoded.
+  - Returns the rendered HTML of the module's guide in `lang`: tries `doc/i18n/<lang>/<filename>`, falls back to `doc/<filename>`; delegates the actual read/render to `_render_doc_html(..., strip_marker=True)`. `None` when neither file exists.
+- `odu.book._render_doc_html(self, filepath, strip_marker) -> html | None` — private.
+  - Shared read+render behind guides and the change timeline. Stats the file; **skips** it (`None`, warning) when it is oversized (> `MAX_DOC_BYTES`) or unreadable/non-UTF-8; serves from `_RENDER_CACHE` when the cached mtime matches; optionally strips the leading i18n marker (`strip_marker=True`); renders via `md_to_html` inside a `try/except` so a render failure isolates to this one file (`None`, logged) instead of raising; caches and returns the HTML.
 - `odu.book.get_changes(self)` — `@api.model`.
   - Purpose: assemble the day-by-day documentation-change archive. Input: none.
   - Returns: `{"days": [{"date": "YYYY-MM-DD", "entries": [{"module", "title", "html"}, ...]}, ...]}` — days descending, entries by module name.
   - Side effects: none (read-only; reads files from disk).
   - Trigger: the `/odu_book/changes` controller (and any server-side caller).
 - `odu.book._read_module_changes(self, module_name)` — private.
-  - Returns the list of `(date_str, html)` pairs for the module's `doc/changes/*.md` files whose name matches `YYYY-MM-DD.md` (sorted by file name). Returns `[]` when the module path / `doc/changes/` folder is absent. Individual unreadable / non-UTF-8 files are skipped with a warning.
+  - Returns the list of `(date_str, html)` pairs for the module's `doc/changes/*.md` files whose name matches `YYYY-MM-DD.md` (sorted by file name). Returns `[]` when the module path / `doc/changes/` folder is absent. Delegates read/render to `_render_doc_html(..., strip_marker=False)`; files that are unreadable, non-UTF-8, oversized, or that fail to render are skipped.
 - `markdown.md_to_html(text)` — pure function (`models/markdown.py`), no Odoo dependency.
   - Purpose: dependency-free Markdown → HTML renderer, written from scratch so the Book needs no extra packages.
   - Supported syntax (behavior contract): ATX headings `#`..`######` (each gets an `id` slug via `_slug`), paragraphs, unordered/ordered lists incl. nesting and lazy continuation, fenced code blocks (``` ``` ``` or `~~~`, optional language → `class="language-<lang>"`), recursive blockquotes, GFM pipe tables (header + separator row), horizontal rules, and inline: bold `**`, italic `*`, inline code `` ` ``, links `[t](url)` → `<a target="_blank" rel="noreferrer noopener">`, images `![alt](src)`.
   - **Diff blocks**: a fenced block with language `diff` is rendered line by line — a line starting with `+` is wrapped in `<span class="o_diff_add">`, a line starting with `-` in `<span class="o_diff_del">`; all other lines stay plain. Content is still fully escaped. Used by the Changes archive to colour added/removed documentation.
   - Security/escaping: **all** text is HTML-escaped (`markupsafe.escape`); inline code is stashed before escaping so its content is never reformatted; `_` is intentionally left untouched so identifiers like `res_partner`/`odu_book` are not rendered as emphasis. Empty input → `""`.
-  - Private helpers (no external contract, omitted by design): `_consume_fence/_consume_quote/_consume_table/_consume_list`, `_render_diff`, `_render_list`, `_split_row`, `_inline`, `_slug`.
+  - **URL-scheme allowlist (XSS guard):** link `href` and image `src` URLs are passed through `_safe_url`, which permits only `http`/`https`/`mailto` schemes plus scheme-relative and relative URLs; any other explicit scheme (`javascript:`, `data:`, `vbscript:`, …) is rewritten to `#`. This is required because the rendered HTML is injected client-side via OWL `markup()`/`t-out` without further sanitisation.
+  - **Robustness bounds:** nested-list recursion is capped at `_MAX_LIST_DEPTH` (12) — deeper items render flat, so pathological input cannot overflow the stack; `_consume_list` guards against an empty item list. Oversized files are bounded upstream by `MAX_DOC_BYTES`, and a raised exception during rendering is caught by the caller (`_render_doc_html`).
+  - Private helpers (no external contract, omitted by design): `_safe_url`, `_consume_fence/_consume_quote/_consume_table/_consume_list`, `_render_diff`, `_render_list` (takes a `depth` arg), `_split_row`, `_inline`, `_slug`.
 
 ## Security
 - No `ir.model.access.csv`, no security groups, no record rules — `odu.book` is an AbstractModel with no table and needs no model ACL.
@@ -93,6 +102,7 @@
   - Server: `get_admin_book` raises `AccessError` unless the caller is in `base.group_system`, so the admin content cannot be obtained by calling `/odu_book/admin` directly. The defence of record is the **method**, not the menu.
 - Userbook (`action_odu_book`) and Changes (`action_odu_book_changes`) menus carry **no group restriction** → visible to all internal users.
 - `get_book` / `get_admin_book` / `get_changes` read `ir.module.module` via `sudo()`; the user is not granted direct registry access.
+- **Rendered-HTML trust boundary:** guide/change HTML comes from module documentation files (not end-user input) but is injected client-side via `markup()`/`t-out` without further sanitisation. `md_to_html` is therefore the sanitiser of record — it escapes all text and allowlists URL schemes (`_safe_url`) so a `javascript:`/`data:` link in a documentation file cannot execute in the reader's authenticated session.
 
 ## Views & UI
 - `ir.actions.client` `action_odu_book`: name `User Guide`, `tag = "odu_book.book"`.

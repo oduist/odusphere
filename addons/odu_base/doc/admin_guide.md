@@ -10,16 +10,40 @@ The starter website ships a public **contact form**. Every submission is stored
 and listed in **Settings → Contact Requests**.
 
 - Open **Settings → Contact Requests** to read incoming messages, newest first.
-  Each entry shows when it was received, the sender's name and email, and the
-  message body.
+  Each entry shows when it was received, the sender's name and email, the source
+  **IP address**, and the message body.
 - Use the **Handled** toggle to mark a request as processed once you have dealt
   with it. The list opens filtered to **Unhandled** requests; clear the filter to
   see everything.
 - Submissions arrive through the public `POST /api/contact` endpoint, which is
-  open to anyone (no login). Two light spam guards are built in: a hidden honeypot
-  field and basic validation. There is **no** captcha or rate limiting — if a
-  sphere is publicly exposed, expect occasional spam and triage it with the
-  Handled toggle.
+  open to anyone (no login). It has three built-in abuse guards: a hidden honeypot
+  field, a request-size cap (oversized bodies are rejected outright), and a
+  **per-IP rate limit** (see below). There is no captcha — if a sphere is publicly
+  exposed, expect occasional spam and triage it with the Handled toggle.
+
+## Contact-form rate limit
+
+The endpoint throttles repeated submissions from the same IP address. By default
+it accepts at most **10 submissions per 10 minutes per IP**; further attempts get
+an HTTP 429 and are not stored. Two system parameters tune it (developer mode →
+**Settings → Technical → System Parameters**):
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `odu_base.contact_rate_limit_max` | `10` | Max stored submissions per IP within the window. Set to `0` to **disable** the limit. |
+| `odu_base.contact_rate_limit_window_minutes` | `10` | Length of the rolling window, in minutes. |
+
+**Important — put Odoo behind the gateway in `proxy_mode`.** The limit keys on the
+caller's IP, taken from the request's remote address. When Odoo runs behind the
+Caddy gateway (the standard OduSphere layout), enable `proxy_mode = True` in
+`odoo.conf` so Odoo reads the real visitor's IP from the proxy headers. Without
+it, every request appears to come from the gateway's single IP, so the limit
+becomes **global** rather than per-visitor (all visitors share one quota). If you
+cannot enable `proxy_mode`, raise the limit or set the max to `0` to disable it,
+and rely on the gateway and honeypot instead.
+
+The source IP is stored on each request (visible on the form, administrators
+only) so you can identify and, if needed, block abusive sources at the gateway.
 
 ## Allowing an extra framework module
 

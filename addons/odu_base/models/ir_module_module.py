@@ -37,6 +37,18 @@ class IrModuleModule(models.Model):
         self._odu_assert_installable()
         return super().button_install()
 
+    def button_immediate_install(self):
+        """Police the immediate-install path too, independently of delegation.
+
+        The interactive Apps "Activate"/"Install" button funnels through
+        ``button_immediate_install``, which delegates to ``button_install``.
+        We assert here as well so the policy holds even if a future/edge path
+        reaches immediate-install without going through ``button_install``. The
+        duplicate check is idempotent (the guard is a pure read).
+        """
+        self._odu_assert_installable()
+        return super().button_immediate_install()
+
     def _odu_allowed_module_names(self):
         """Return the full set of non-``odu_`` module names allowed to install.
 
