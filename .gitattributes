@@ -24,7 +24,6 @@
 # --- Sphere-owned: keep ours on conflict ---------------------------------------
 website/**                    merge=ours
 .docs/architecture.local.md   merge=ours
-sphere.caddy                  merge=ours
 README.md                     merge=ours
 LANG.local.md                 merge=ours
 
@@ -36,7 +35,7 @@ addons/odu_base/**            merge=theirs
 addons/odu_book/**            merge=theirs
 
 # Everything else uses the default 3-way merge so upstream changes to the
-# contract (ODUSPHERE.md, AGENTS.md, LANG.md), the scripts, Caddyfile and
+# contract (ODUSPHERE.md, AGENTS.md, LANG.md), the scripts and
 # .docs/architecture.md flow in.
 #
 # NOTE: merge=union is deliberately NOT used for .docs/architecture.md — on a

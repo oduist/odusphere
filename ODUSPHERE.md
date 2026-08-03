@@ -10,7 +10,7 @@ the git `origin` remote (`git remote get-url origin`):
   **template itself (upstream)**. You are the *author and owner* of the core:
   * You **may and do** edit the core modules (`addons/odu_base`, `addons/odu_book`)
     and the upstream-owned contract files (`.docs/architecture.md`, `LANG.md`,
-    `ODUSPHERE.md`, `AGENTS.md`, `scripts/`, `Caddyfile`).
+    `ODUSPHERE.md`, `AGENTS.md`, `scripts/`).
   * The `merge=theirs` prohibitions in `.gitattributes` (“a sphere must NOT edit the
     core”) and the “document your own modules only in `.docs/architecture.local.md`”
     rule are instructions the template **emits for downstream spheres** — they do
@@ -184,8 +184,7 @@ Strictly adhere to the following file tree layout across the repository:
 │   ├── architecture.md                # System map — CORE only (upstream-owned; do not edit in a sphere)
 │   └── architecture.local.md          # System map — this sphere's own modules (sphere-owned)
 ├── .gitattributes                     # Merge ownership lanes for upstream updates (merge=ours)
-├── Caddyfile                          # Gateway configuration (upstream-owned base; imports sphere.caddy)
-├── sphere.caddy                       # Sphere-owned extra gateway routes (imported by Caddyfile)
+│                                      # (no gateway config here — OduSphere generates the Caddyfile)
 │
 ├── addons/                     # Core Backend Addons Directory
 │   ├── odu_book/                      # System module crawling local user guides to render the manual

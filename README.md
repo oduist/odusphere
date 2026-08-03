@@ -13,10 +13,12 @@ single entry point.
 ```
 .
 ├── addons/             # OduSphere Odoo modules (odu_* prefix); e.g. odu_book
-├── website/            # Astro site root; build → website/dist (served by Caddy)
-├── Caddyfile           # Gateway: static website/dist + proxy to Odoo
-└── sphere.caddy        # Sphere-owned extra gateway routes (imported by the Caddyfile)
+└── website/            # Astro site root; build → website/dist (served by Caddy)
 ```
+
+The gateway config is **not** part of a sphere: OduSphere generates and owns the
+Caddyfile. It serves `website/dist` for every path that exists there and proxies
+everything else to Odoo, so a module's controllers need no gateway entry.
 
 The standard Odoo `website` module is not used — the entire public frontend lives in
 `website/`.
@@ -64,7 +66,8 @@ history, ownership lanes, and a `merge=ours` driver — is documented in
 ```
 
 Document this sphere's own modules in `.docs/architecture.local.md` (not the
-upstream-owned `.docs/architecture.md`), and add gateway routes in `sphere.caddy`
-(not the `Caddyfile`). See `ODUSPHERE.md` §6.
+upstream-owned `.docs/architecture.md`). Gateway routes need no configuration —
+OduSphere generates the Caddyfile and every Odoo controller is reachable through
+it. See `ODUSPHERE.md` §6.
 
 ---
